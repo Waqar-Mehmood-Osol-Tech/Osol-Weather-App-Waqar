@@ -156,9 +156,9 @@ function App() {
   return (
     <div className={`h-screen p-4 flex flex-col ${currentTheme === "dark" ? "bg-black text-white" : "bg-white text-black"}`}>
       {/* Top Section */}
-      <div className="top-section flex flex-row gap-3">
+      <div className="top-section h-[65%] flex flex-row gap-3">
         {/* Section 1 of Top Section */}
-        <div className="lg:w-[25%] lg:h-[350px] bg-blue-400 p-5 rounded-xl flex flex-col">
+        <div className="lg:w-[25%] lg:h-full bg-blue-400 p-5 rounded-xl flex flex-col">
 
           <div className="flex justify-between items-center mb-4">
             <div className="text-white">
@@ -263,7 +263,7 @@ function App() {
         </div>
 
         {/* Section 2 of Top Section */}
-        <div className="lg:w-[75%]  lg:h-[350px] border-2 rounded-xl flex flex-col">
+        <div className="lg:w-[75%]  lg:h-full pt-1 border-2 rounded-xl flex flex-col">
           {/* Search Bar and theme */}
           <div className="flex flex-row justify-between p-3">
             <div className="search-bar border-2 rounded-full">
@@ -327,7 +327,7 @@ function App() {
           {/* Next 5 days and hourly forecast */}
           <div className="flex flex-row justify-between gap-2 p-3">
             {/* Five Days Forecast */}
-            <div className="flex flex-col h-full w-full lg:w-[60%] bg-transparent border-2 rounded-lg ">
+            <div className="flex flex-col w-full h-full lg:w-[40%] bg-transparent border-2 rounded-lg ">
               <h4 className="text-xl pl-4 font-semibold p-1">
                 Next 5 Days
               </h4>
@@ -342,15 +342,17 @@ function App() {
                         className="flex flex-row justify-between px-4 items-center bg-transparent"
                       >
                         <h5 className="text-sm w-[15%] font-semibold">{day}</h5>
-                        <img
-                          src={`https://openweathermap.org/img/wn/${data.weather[0].icon}.png`}
-                          alt="icon"
-                          className="w-10 h-10 mx-2"
-                        />
-                        <h5 className="text-xs font-light capitalize">
+                        <div className="w-[20%] ">
+                          <img
+                            src={`https://openweathermap.org/img/wn/${data.weather[0].icon}.png`}
+                            alt="icon"
+                            className="w-10 h-10"
+                          />
+                        </div>
+                        <h5 className="text-xs w-[25%] font-light capitalize">
                           {data.weather[0].description}
                         </h5>
-                        <h5 className="text-xs">
+                        <h5 className="text-xs w-[40%] text-center">
                           {data.main.temp_max}&deg; / {data.main.temp_min}&deg;
                         </h5>
                       </div>
@@ -363,10 +365,10 @@ function App() {
             </div>
 
             {/* Map */}
-            <div className="flex items-center w-full h-full lg:w:[40%] bg-transparent border-2 rounded-lg z-10">
+            <div className="flex items-center w-full h-full lg:w-[60%] bg-transparent border-2 rounded-lg z-10">
               <div className="h-full  w-full">
                 {position ? (
-                  <MapContainer center={position} zoom={10} zoomControl={false} className="h-full">
+                  <MapContainer center={position} zoom={10} zoomControl={false} className="h-full rounded-md">
                     {/* MapTiler tile layer with language support */}
                     <TileLayer
                       url={`https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=iww5jN0ZVMDaPpwR0CAA&language=en`}
@@ -386,10 +388,11 @@ function App() {
       </div>
 
       {/* Botton Section */}
-      <div className="flex flex-row mt-2 h-full gap-2">
-        <div className="flex items-center w-full h-full lg:w:[30%] bg-transparent border-2 rounded-lg">
-          <div className="flex flex-col justify-start h-full w-full bg-transparent py-1 px-4">
+      <div className="h-[35%] flex flex-row mt-2 gap-3">
+        <div className="flex items-center w-full h-full lg:w-[30%] bg-transparent border-2 rounded-lg">
+          <div className="flex flex-col justify-start h-full w-full bg-transparent pt-4 px-4">
             {/* section 1 of bottom section */}
+            
             <div className="flex justify-between">
               <h2 className="text-xl font-semibold">Selected Cities</h2>
               {/* + Icon to open the modal */}
@@ -405,15 +408,15 @@ function App() {
             </div>
 
             {/* Display selected cities */}
-            <div className="flex flex-col">
-              <div className="w-full max-w-lg">
+            <div className="flex flex-col justify-between mt-2">
+              <div className="w-full  max-w-lg">
                 <div className="mx-1">
                   {selectedCities.map((cityData) => (
                     <div
                       key={cityData.city}
                       className="flex flex-row justify-between items-center bg-transparent rounded-lg"
                     >
-                      <h3 className="text-sm w-[30%]">{cityData.city}</h3>
+                      <h3 className="text-sm font-semibold w-[30%]">{cityData.city}</h3>
                       {cityData.data ? (
                         <>
                           {/* Display the weather icon */}
@@ -476,13 +479,13 @@ function App() {
 
         {/* Section 2 bottom section */}
         {/* Hourly Forecast */}
-        <div className="flex flex-col w-full h-full lg:w:[70%] bg-transparent border-2 rounded-lg">
+        <div className="flex flex-col w-full h-full lg:w-[70%] pt-3 bg-transparent border-2 rounded-lg">
           <h4 className="text-xl pl-4 font-semibold p-1">
             Hourly Forecast
           </h4>
-          <div className="w-[700px] overflow-y-auto scroll-container">
+          <div className="overflow-y-auto scroll-container">
             {hourlyForecast.length > 0 ? (
-              <div className="flex flex-row gap-1 p-1">
+              <div className="flex flex-row mt-4 gap-1 p-1">
                 {hourlyForecast.map((data, index) => {
                   const date = new Date(data.dt_txt);
                   const hour = date.getHours();
@@ -491,15 +494,15 @@ function App() {
                   return (
                     <div
                       key={index}
-                      className="flex flex-col justify-between px-4 items-center bg-transparent"
+                      className="flex flex-col justify-center mx-4 items-center bg-transparent"
                     >
-                      <h5 className="text-sm w-[20%] font-semibold">{time}</h5>
+                      <h5 className="text-sm font-semibold">{time}</h5>
                       <img
                         src={`https://openweathermap.org/img/wn/${data.weather[0].icon}.png`}
                         alt="icon"
-                        className="w-10 h-10 mx-2"
+                        className="w-10 h-10"
                       />
-                      <h5 className="text-xs font-light capitalize">
+                      <h5 className="text-xs font-light text-center capitalize mb-1">
                         {data.weather[0].description}
                       </h5>
                       <h5 className="text-xs">
