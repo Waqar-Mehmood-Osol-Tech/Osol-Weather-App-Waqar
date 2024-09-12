@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <title>Vite + React</title>
+  <style>
+    /* Override the size and styling of the zoom controls */
+    .leaflet-control-zoom-in,
+    .leaflet-control-zoom-out {
+      width: 10px;
+      height: 10px;
+      font-size: 10px;
+      background-color: #fff;
+      /* Optional: Add background color */
+      border: 1px solid #ccc;
+      /* Optional: Add border style */
+
+      /* Optional: Add border radius */
+    }
+
+    .leaflet-control-zoom {
+      margin-top: 10px;
+      /* Optional: Adjust positioning */
+    }
+
+    /* Style the scrollbar track */
+    .scroll-container::-webkit-scrollbar {
+      width: 8px;
+
+      height: 2px;
+      /* Width of the scrollbar */
+    }
+
+    /* Style the scrollbar handle */
+    .scroll-container::-webkit-scrollbar-thumb {
+      background-color: #888;
+      /* Color of the scrollbar handle */
+      border-radius: 4px;
+      /* Rounded corners for the handle */
+    }
+
+    /* Style the scrollbar handle on hover */
+    .scroll-container::-webkit-scrollbar-thumb:hover {
+      background-color: #555;
+      /* Color when hovering over the handle */
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>
