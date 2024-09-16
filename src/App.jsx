@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import debounce from 'lodash.debounce';
 import Icon from "react-icons-kit";
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -10,9 +11,14 @@ import { droplet } from "react-icons-kit/feather/droplet";
 import { wind } from "react-icons-kit/feather/wind";
 import { activity } from "react-icons-kit/feather/activity";
 import { useDispatch, useSelector } from "react-redux";
+// import Pusher from "pusher-js";
 import { get5DaysForecast, getCityData, getMainCityData, addCityToFavorites, removeCity } from "./Store/Slices/WeatherSlice.js";
 import { SphereSpinner } from "react-spinners-kit";
 import { toggleTheme } from "./Store/Slices/ThemeSlice"; // Import the toggleTheme action
+import Notification from "./components/notification/Notification.jsx"
+import { hostName, appId } from "./config/config.js";
+import axios from 'axios';
+
 
 const myIcon = new L.Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
@@ -44,6 +50,8 @@ function App() {
   // For add Favouroite Citirs (up to 3)
   const [cityInput, setCityInput] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [searchInput, setSearchInput] = useState(""); // Temporary input state
 
   const dispatch = useDispatch();
   // redux state
@@ -60,6 +68,44 @@ function App() {
 
   const [loadings, setLoadings] = useState(true);
   const allLoadings = [mainCityLoading, citySearchLoading, forecastLoading];
+
+  useEffect(() => {
+    // Function to get city name from IPAPI
+    const fetchCityFromIP = async () => {
+      try {
+        const response = await axios.get('https://ipapi.co/json/');
+        const cityName = response.data.city || 'Lahore';
+        await fetchCoordinatesFromCity(cityName);
+        setCity(cityName);
+      } catch (error) {
+        console.error('Error fetching city name:', error);
+        await fetchCoordinatesFromCity('Lahore'); // Fallback city
+      } finally {
+        setLoadings(false);
+      }
+    };
+
+    // Function to fetch coordinates based on city name using OpenCage
+    const fetchCoordinatesFromCity = async (city) => {
+      try {
+        const apiKey = 'b47c307acaff417892a4666a14f675c6'; // Replace with your OpenCage API key
+        const response = await axios.get(`https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(city)}&key=${apiKey}`);
+        const results = response.data.results;
+        if (results.length > 0) {
+          const { lat, lng } = results[0].geometry;
+          setPosition([lat, lng]);
+        } else {
+          console.error('No results found for the city');
+          setPosition([0, 0]); // Fallback coordinates
+        }
+      } catch (error) {
+        console.error('Error fetching coordinates:', error);
+        setPosition([0, 0]); // Fallback coordinates
+      }
+    };
+
+    fetchCityFromIP();
+  }, []);
 
   useEffect(() => {
     const isAnyChildLoading = allLoadings.some((state) => state);
@@ -94,20 +140,16 @@ function App() {
     });
   }, []);
 
-  // const handleCitySearch = (e) => {
-  //   e.preventDefault();
-  //   setLoadings(true);
-  //   dispatch(getCityData({ city, unit }));
-  // };
-
   const handleCitySearch = async (e) => {
     e.preventDefault();
-    if (!city.trim()) return; // Prevent search if input is empty
+    if (!searchInput.trim()) return; // Prevent search if input is empty
 
-    setLoadings(true);
-    dispatch(getCityData({ city, unit }));
-    setLoadings(false); // Reset loading state, or manage it in the Redux slice
+    setCity(searchInput); // Update city state
+    dispatch(getCityData({ city: searchInput, unit }));
+    setSuggestions([]);
+    setSearchInput(""); // Clear the input field
   };
+
 
   const getHourlyForecast = () => {
     if (!forecastData || !forecastData.list) return [];
@@ -131,16 +173,56 @@ function App() {
 
   const filteredForecast = filterForecastByFirstObjTime(forecastData?.list);
 
+  const [notification, setNotification] = useState("");
+
+  // Initialize Pusher
+  // const pusher = new Pusher("a5ccddc662fe5e5ec413", {
+  //   cluster: "ap2"
+  // });
+
+  // useEffect(() => {
+
+  //   // Subscribe to a weather channel (replace with your channel)
+  //   const channel = pusher.subscribe("weather-updates");
+
+  //   // Listen to events (example event name: `weather-update`)
+  //   channel.bind("weather-updates", (data) => {
+  //     const cityWeather = mainCityData.data.weather[0]; // Assuming `data` has city info and forecast
+
+  //     if (cityWeather.name === "Lahore" && cityWeather.forecast) {
+  //       const nextHourForecast = cityWeather.forecast.hourly[0]; // Get the next hour forecast
+
+  //       if (nextHourForecast.weather === "clear sky") {
+  //         setNotification(`Lahore weather remains clear in the next hour`);
+  //       } else if (nextHourForecast.weather === "light rain") {
+  //         setNotification(`Lahore may experience rain in the next hour`);
+  //       } else {
+  //         setNotification(`Lahore weather: ${nextHourForecast.weather} in the next hour`);
+  //       }
+  //     }
+  //   });
+
+  //   // Cleanup when component unmounts
+  //   return () => {
+  //     channel.unbind_all();
+  //     channel.unsubscribe();
+  //   };
+  // }, []);
+
+
   const handleAddCity = async () => {
     if (cityInput) {
       dispatch(addCityToFavorites({ city: cityInput, unit: "metric" }));
       setCityInput("");
+      setNotification("City added successfully!");
+      console.log(mainCityData.data.weather[0])
       setIsModalOpen(false); // Close modal after adding city
     }
   };
 
   const handleRemoveCity = (city) => {
     dispatch(removeCity(city));
+    setNotification(`${city} removed successfully!`);
   };
 
   const handleOutsideClick = (e) => {
@@ -149,19 +231,88 @@ function App() {
     }
   };
 
+  const handleCloseNotification = () => {
+    setNotification("");
+  };
+
   const toggleUnit = () => {
     setUnit((prevUnit) => (prevUnit === "metric" ? "imperial" : "metric"));
   };
 
+  // Use the same hostname and API key from your config file
+  const GEO_API_URL = `${hostName}/geo/1.0/direct`;
+
+  // Function to fetch city suggestions
+  // const fetchCitySuggestions = async (query) => {
+  //   if (query.trim().length < 3) {
+  //     setSuggestions([]); // No suggestions if the query is too short
+  //     return;
+  //   }
+
+  //   setLoadings(true);
+
+  //   try {
+  //     const response = await axios.get(GEO_API_URL, {
+  //       params: {
+  //         q: query,
+  //         limit: 5, // Limit the number of suggestions
+  //         appid: appId, // Use your appId from the config file
+  //       },
+  //     });
+  //     console.log("City suggestions response:", response.data);
+  //     setSuggestions(response.data);
+  //   } catch (error) {
+  //     console.error('Error fetching city suggestions:', error);
+  //     setSuggestions([]);
+  //   } finally {
+  //     setLoadings(false);
+  //   }
+  // };
+
+  const fetchCitySuggestions = useCallback(
+    debounce(async (query) => {
+      if (query.trim().length < 3) {
+        setSuggestions([]); // No suggestions if the query is too short
+        return;
+      }
+
+      setLoadings(true);
+
+      try {
+        const response = await axios.get(GEO_API_URL, {
+          params: {
+            q: query,
+            limit: 5, // Limit the number of suggestions
+            appid: appId, // Use your appId from the config file
+          },
+        });
+        console.log("City suggestions response:", response.data);
+        setSuggestions(response.data);
+      } catch (error) {
+        console.error('Error fetching city suggestions:', error);
+        setSuggestions([]);
+      } finally {
+        setLoadings(false);
+      }
+    }, 300), // Adjust debounce delay as needed
+    []
+  );
+
+  const handleInputChange = (e) => {
+    setSearchInput(e.target.value); // Update temporary input state
+    fetchCitySuggestions(e.target.value); // Fetch suggestions
+  };
+
+
   return (
-    <div className={`h-screen p-4 flex flex-col ${currentTheme === "dark" ? "bg-black text-white" : "bg-white text-black"}`}>
+    <div className={`h-screen p-3 flex flex-col gap-2 ${currentTheme === "dark" ? "bg-black text-white" : "bg-white text-black"}`}>
       {/* Top Section */}
-      <div className="top-section h-[65%] flex flex-row gap-3">
+      <div className="h-[65%] flex flex-row gap-3">
         {/* Section 1 of Top Section */}
-        <div className="lg:w-[25%] lg:h-full bg-blue-400 p-5 rounded-xl flex flex-col">
+        <div className="lg:w-[25%] lg:h-full mainCardBg p-5 rounded-xl flex flex-col">
 
           <div className="flex justify-between items-center mb-4">
-            <div className="text-white">
+            <div className="">
               <div>
                 <p className="text-xs">{formattedDate}</p>
               </div>
@@ -216,11 +367,11 @@ function App() {
                         <p className="text-sm" >Feels like {mainCityData.data.main.feels_like}&deg;</p>
                         <div className="flex space-x-2">
                           <div className="flex items-center text-xs">
-                            <Icon icon={arrowUp} size={14} className="text-white" />
+                            <Icon icon={arrowUp} size={14} className="" />
                             <span>{mainCityData.data.main.temp_max}&deg;</span>
                           </div>
                           <div className="flex items-center text-xs">
-                            <Icon icon={arrowDown} size={14} className="text-white" />
+                            <Icon icon={arrowDown} size={14} className="" />
                             <span>{mainCityData.data.main.temp_min}&deg;</span>
                           </div>
                         </div>
@@ -230,8 +381,8 @@ function App() {
                       <div className="flex flex-row justify-between">
                         {/* Humidity */}
                         <div className="flex flex-col items-center justify-center">
-                          <Icon icon={droplet} size={30} className="text-white mt-1" />
-                          <span className="text-xs mt-1 font-bold">{mainCityData.data.main.humidity}%</span>
+                          <Icon icon={droplet} size={30} className=" mt-1" />
+                          <span className="text-xs mt-1 font-bold">{mainCityData.data.main.humidity} %</span>
                           <p className="text-xs mt-1">Humidity</p>
                         </div>
 
@@ -239,8 +390,8 @@ function App() {
 
                         {/* Wind */}
                         <div className="flex flex-col items-center justify-center">
-                          <Icon icon={wind} size={30} className="text-white mt-1" />
-                          <span className="text-xs mt-1 font-bold">{mainCityData.data.wind.speed}kph</span>
+                          <Icon icon={wind} size={30} className=" mt-1" />
+                          <span className="text-xs mt-1 font-bold">{mainCityData.data.wind.speed} kph</span>
                           <p className="text-xs mt-1">Wind</p>
                         </div>
 
@@ -249,8 +400,8 @@ function App() {
 
                         {/* Pressure */}
                         <div className="flex flex-col items-center justify-center">
-                          <Icon icon={activity} size={30} className="text-white mt-1" />
-                          <span className="text-xs mt-1 font-bold">{mainCityData.data.main.pressure}hPa</span>
+                          <Icon icon={activity} size={30} className="mt-1" />
+                          <span className="text-xs mt-1 font-bold">{mainCityData.data.main.pressure} hPa</span>
                           <p className="text-xs mt-1">Pressure</p>
                         </div>
                       </div>
@@ -263,15 +414,12 @@ function App() {
         </div>
 
         {/* Section 2 of Top Section */}
-        <div className="lg:w-[75%]  lg:h-full pt-1 border-2 rounded-xl flex flex-col">
+        <div className={`lg:w-[75%]  lg:h-full ${currentTheme === 'dark' ? 'border-none' : 'bg-white border-2 p-3'} rounded-xl flex flex-col  gap-3`}>
           {/* Search Bar and theme */}
-          <div className="flex flex-row justify-between p-3">
-            <div className="search-bar border-2 rounded-full">
-              <form
-                className="flex items-center bg-transparent rounded-full h-8 "
-                autoComplete="off"
-                onSubmit={handleCitySearch}
-              >
+          <div className="flex flex-row h-[20`%] relative justify-between">
+            {/* Search Bar */}
+            <div className={`search-bar`}>
+              <form className={`flex items-center ${currentTheme === 'dark' ? 'bg-[#303136]' : 'bg-white border-2'} rounded-full h-8`} autoComplete="off" onSubmit={handleCitySearch}>
                 <label className="flex items-center justify-center text-gray-500 ml-4 mb-1">
                   <Icon icon={search} size={20} />
                 </label>
@@ -279,21 +427,46 @@ function App() {
                   type="text"
                   className="flex-grow px-4 text-xs h-full outline-none bg-transparent"
                   placeholder="Search City"
-                  required
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  value={searchInput} // Use temporary input state
+                  onChange={handleInputChange}
                 />
-                <button
-                  type="submit"
-                  className="bg-transparent text-gray-500 rounded-full h-full w-20 "
-                >
+                <button type="submit" className="bg-transparent text-gray-500 rounded-full h-full w-20 ">
                   GO
                 </button>
               </form>
+
+
+              {loadings ? (
+                <div>
+                  <p></p>
+                </div>
+              ) : (
+                suggestions.length > 0 && (
+                  <ul className={`mt-2 ${currentTheme === 'dark' ? 'bg-gray-400' : 'bg-white border-2'} shadow-lg rounded-lg absolute z-10 w-full max-h-60 max-w-80 overflow-auto`}>
+                    {suggestions.map((suggestion) => (
+                      <li
+                        key={`${suggestion.lat}-${suggestion.lon}`}
+                        className={`p-2 cursor-pointer ${currentTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                        onClick={() => {
+                          setCity(suggestion.name); // Update city state
+                          setSearchInput(""); // Clear input field
+                          setSuggestions([]); // Clear suggestions
+                        }}
+                      >
+                        {suggestion.name}, {suggestion.country}
+                      </li>
+                    ))}
+                  </ul>
+                )
+              )}
+            </div>
+
+            <div className="flex">
+              <Notification message={notification} onClose={handleCloseNotification} />
             </div>
 
             {/* Theme Toggle Button */}
-            <div className="flex items-center bg-black border-2 rounded-full cursor-pointer relative w-14 h-8"
+            <div className="flex items-center bg-[#303136] border-2 rounded-full cursor-pointer relative w-14 h-8"
               onClick={() => dispatch(toggleTheme())}
             >
               <div
@@ -324,25 +497,25 @@ function App() {
             </div>
           </div>
 
-          {/* Next 5 days and hourly forecast */}
-          <div className="flex flex-row justify-between gap-2 p-3">
+          {/* Next 5 days and Map */}
+          <div className="flex flex-row h-[90%] justify-between gap-2">
             {/* Five Days Forecast */}
-            <div className="flex flex-col w-full h-full lg:w-[40%] bg-transparent border-2 rounded-lg ">
-              <h4 className="text-xl pl-4 font-semibold p-1">
+            <div className={`flex flex-col w-full h-full lg:w-[40%] ${currentTheme === 'dark' ? 'bg-[#303136]' : 'bg-white border-2'} rounded-lg pt-3`}>
+              <h4 className="text-lg pl-4 mb-1 font-semibold">
                 Next 5 Days
               </h4>
               {filteredForecast.length > 0 ? (
-                <div className="flex flex-col gap-1 p-1">
+                <div className="flex flex-col h-full pl-4">
                   {filteredForecast.map((data, index) => {
                     const date = new Date(data.dt_txt);
                     const day = date.toLocaleDateString("en-US", { weekday: "short" });
                     return (
                       <div
                         key={index}
-                        className="flex flex-row justify-between px-4 items-center bg-transparent"
+                        className="flex flex-row justify-between items-center bg-transparent flex-grow"
                       >
                         <h5 className="text-sm w-[15%] font-semibold">{day}</h5>
-                        <div className="w-[20%] ">
+                        <div className="w-[20%]">
                           <img
                             src={`https://openweathermap.org/img/wn/${data.weather[0].icon}.png`}
                             alt="icon"
@@ -360,26 +533,35 @@ function App() {
                   })}
                 </div>
               ) : (
-                <div className="error-msg text-red-500 text-center py-24">No Data Found</div>
+                <div>
+                  <div className="error-msg text-red-500 text-center py-24">
+                    No Data Found
+                  </div>
+                </div>
+
               )}
             </div>
 
+
             {/* Map */}
-            <div className="flex items-center w-full h-full lg:w-[60%] bg-transparent border-2 rounded-lg z-10">
-              <div className="h-full  w-full">
-                {position ? (
+            <div className={`flex items-center w-full h-full lg:w-[60%]  border-2 ${currentTheme === 'dark' ? 'border-[#303136] border-2' : ''} rounded-lg z-10`}>
+              <div className="h-full w-full">
+                {loadings ? (
+                  <div className="flex justify-center items-center  w-full h-full">
+                    <SphereSpinner loadings={loadings} color="#0D1DA9" size={30} />
+                  </div>
+                ) : position ? (
                   <MapContainer center={position} zoom={10} zoomControl={false} className="h-full rounded-md">
-                    {/* MapTiler tile layer with language support */}
                     <TileLayer
-                      url={`https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=iww5jN0ZVMDaPpwR0CAA&language=en`}
+                      url={`https://api.maptiler.com/maps/${currentTheme === 'dark' ? 'streets' : 'streets'}/{z}/{x}/{y}.png?key=iww5jN0ZVMDaPpwR0CAA&language=en`}
                       attribution='&copy; <a href="https://www.maptiler.com/">MapTiler</a>'
                     />
-                    <Marker position={position} icon={myIcon} >
+                    <Marker position={position} icon={myIcon}>
                       <Popup>You are here</Popup>
                     </Marker>
                   </MapContainer>
                 ) : (
-                  <p>Fetching location...</p>
+                  <p>Unable to fetch location</p>
                 )}
               </div>
             </div>
@@ -388,14 +570,13 @@ function App() {
       </div>
 
       {/* Botton Section */}
-      <div className="h-[35%] flex flex-row mt-2 gap-3">
-        <div className="flex items-center w-full h-full lg:w-[30%] bg-transparent border-2 rounded-lg">
-          <div className="flex flex-col justify-start h-full w-full bg-transparent pt-4 px-4">
-            {/* section 1 of bottom section */}
-            
+      <div className="h-[35%] flex flex-row gap-3">
+        {/* section 1 of bottom section */}
+        <div className={`flex items-center w-full h-full lg:w-[30%]  rounded-lg ${currentTheme === 'dark' ? 'bg-[#303136]' : 'bg-white border-2'}`}>
+          <div className="flex flex-col justify-start h-full w-full rounded-lg p-4">
+            {/* + Icon to open the modal */}
             <div className="flex justify-between">
-              <h2 className="text-xl font-semibold">Selected Cities</h2>
-              {/* + Icon to open the modal */}
+              <h2 className="text-lg font-semibold">Cities you are interested in</h2>
               <div className="mt-1">
                 <div
                   onClick={() => setIsModalOpen(true)}
@@ -479,36 +660,40 @@ function App() {
 
         {/* Section 2 bottom section */}
         {/* Hourly Forecast */}
-        <div className="flex flex-col w-full h-full lg:w-[70%] pt-3 bg-transparent border-2 rounded-lg">
-          <h4 className="text-xl pl-4 font-semibold p-1">
+        <div className={`flex flex-col w-full h-full lg:w-[70%] pt-4 ${currentTheme === 'dark' ? 'bg-[#303136]' : 'bg-white border-2'}  rounded-lg`}>
+          <h4 className="text-lg pl-4 font-semibold p-1">
             Hourly Forecast
           </h4>
-          <div className="overflow-y-auto scroll-container">
+          <div className="overflow-y-auto pl-4 h-full scroll-container">
             {hourlyForecast.length > 0 ? (
-              <div className="flex flex-row mt-4 gap-1 p-1">
+              <div className="flex flex-row mt-2  gap-1 p-1">
                 {hourlyForecast.map((data, index) => {
                   const date = new Date(data.dt_txt);
-                  const hour = date.getHours();
-                  const time = `${hour}:00`;
-
+                  let hour = date.getHours();
+                  const isPM = hour >= 12;
+                  const displayHour = hour % 12 || 12; // Convert to 12-hour format
+                  const amPm = isPM ? "pm" : "am";
+                  const time = `${displayHour}:00 ${amPm}`; // Time with AM/PM
                   return (
                     <div
-                      key={index}
-                      className="flex flex-col justify-center mx-4 items-center bg-transparent"
-                    >
-                      <h5 className="text-sm font-semibold">{time}</h5>
+                      key={index} className="w-full max-w-[150px] h-full p-2 flex flex-col items-center justify-between">
+                      <div className="flex items-center justify-center gap-1   w-full mb-2">
+                        <span className="text-xs font-semibold">{displayHour}:00</span>
+                        <span className="text-xs font-light">{amPm}</span>
+                      </div>
                       <img
                         src={`https://openweathermap.org/img/wn/${data.weather[0].icon}.png`}
-                        alt="icon"
-                        className="w-10 h-10"
+                        alt={data.weather[0].description}
+                        className="w-10 h-10 mb-2"
                       />
-                      <h5 className="text-xs font-light text-center capitalize mb-1">
-                        {data.weather[0].description}
-                      </h5>
-                      <h5 className="text-xs">
-                        {data.main.temp}&deg;
-                      </h5>
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-xs font-light truncate mr-1" title={data.weather[0].description}>
+                          {data.weather[0].description}
+                        </span>
+                        <span className="text-xs font-semibold whitespace-nowrap">{Math.round(data.main.temp)}&deg;</span>
+                      </div>
                     </div>
+
                   );
                 })}
               </div>
