@@ -340,18 +340,6 @@ function App() {
               </ul>
             )}
           </div>
-          {/* Notifications
-          <div className="flex">
-            {notificationMessage && (
-              <div className={` absolute right-0 mr-2 z-10 lg:hidden w-max-80 text-xs px-4 py-2 rounded-lg shadow-md ${notificationMessage.type === 'success' ? 'bg-green-500 text-white' :
-                notificationMessage.type === 'error' ? 'bg-red-500 text-white' :
-                  'bg-blue-500 text-white'
-                }`}>
-                {notificationMessage.message}
-              </div>
-            )}
-          </div> */}
-
           {/* Notifications */}
           <div className="flex">
             {notificationMessage && notificationMessage.message && (
@@ -590,16 +578,6 @@ function App() {
               )}
             </div>
             {/* Notifications */}
-            {/* <div className="flex">
-              {notificationMessage && (
-                <div className={`hidden lg:block absolute  top-0 right-14 mr-3 z-10 lg:ml-5 text-xs px-4 py-2 rounded-xl shadow-md ${notificationMessage.type === 'success' ? 'bg-green-500 text-white' :
-                  notificationMessage.type === 'error' ? 'bg-red-500 text-white' :
-                    'bg-blue-500 text-white'
-                  }`}>
-                  {notificationMessage.message}
-                </div>
-              )}
-            </div> */}
             <div className="flex">
               {notificationMessage && notificationMessage.message && (
                 <div className={`absolute hidden top-0 right-14 mr-3 z-10 lg:block w-max-80 text-xs px-4 py-2 rounded-lg shadow-md ${notificationMessage.type === 'success' ? 'bg-green-500 text-white' :
