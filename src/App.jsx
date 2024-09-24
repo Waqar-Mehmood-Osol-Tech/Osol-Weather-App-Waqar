@@ -59,7 +59,9 @@ function App() {
   const year = now.toLocaleDateString('en-GB', yearOptions);
   const formattedDate = `${day}, ${date} ${month} ${year}`;
 
-  const [city, setCity] = useState("Lahore");
+  // const [city, setCity] = useState("Lahore");
+  const [mainCity, setMainCity] = useState("Lahore");
+  const [selectedCity, setSelectedCity] = useState("Lahore");
   const [unit, setUnit] = useState("metric");
   const { currentTheme } = useSelector((state) => state.theme);
 
@@ -84,13 +86,51 @@ function App() {
   const [loadings, setLoadings] = useState(true);
   const allLoadings = [mainCityLoading, citySearchLoading, forecastLoading];
 
+  // useEffect(() => {
+  //   const fetchCityFromIP = async () => {
+  //     try {
+  //       const response = await axios.get('https://ipapi.co/json/');
+  //       const cityName = response.data.city || 'Lahore';
+  //       await fetchCoordinatesFromCity(cityName);
+  //       setCity(cityName);
+  //     } catch (error) {
+  //       console.error('Error fetching city name:', error);
+  //       await fetchCoordinatesFromCity('Lahore');
+  //     } finally {
+  //       setLoadings(false);
+  //     }
+  //   };
+
+  //   const fetchCoordinatesFromCity = async (city) => {
+  //     try {
+  //       const apiKey = 'b47c307acaff417892a4666a14f675c6';
+  //       const response = await axios.get(`https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(city)}&key=${apiKey}`);
+  //       const results = response.data.results;
+  //       if (results.length > 0) {
+  //         const { lat, lng } = results[0].geometry;
+  //         setPosition([lat, lng]);
+  //       } else {
+  //         console.error('No results found for the city');
+  //         setPosition([0, 0]);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error fetching coordinates:', error);
+  //       setPosition([0, 0]);
+  //     }
+  //   };
+
+  //   fetchCityFromIP();
+  // }, []);
+
+
   useEffect(() => {
     const fetchCityFromIP = async () => {
       try {
         const response = await axios.get('https://ipapi.co/json/');
         const cityName = response.data.city || 'Lahore';
         await fetchCoordinatesFromCity(cityName);
-        setCity(cityName);
+        setMainCity(cityName);
+        setSelectedCity(cityName);
       } catch (error) {
         console.error('Error fetching city name:', error);
         await fetchCoordinatesFromCity('Lahore');
@@ -120,20 +160,64 @@ function App() {
     fetchCityFromIP();
   }, []);
 
+  // useEffect(() => {
+  //   const isAnyChildLoading = allLoadings.some((state) => state);
+  //   setLoadings(isAnyChildLoading);
+  // }, [allLoadings]);
+
+  // useEffect(() => {
+  //   dispatch(getMainCityData({ city, unit }));
+  // }, [dispatch, city, unit]);
   useEffect(() => {
     const isAnyChildLoading = allLoadings.some((state) => state);
     setLoadings(isAnyChildLoading);
   }, [allLoadings]);
 
   useEffect(() => {
-    dispatch(getMainCityData({ city, unit }));
-  }, [dispatch, city, unit]);
+    dispatch(getMainCityData({ city: selectedCity, unit }));
+  }, [dispatch, selectedCity, unit]);
+
+  // useEffect(() => {
+  //   const isAnyChildLoading = [mainCityLoading].some((state) => state);
+  //   setLoadings(isAnyChildLoading);
+  // }, [mainCityLoading]);
 
   useEffect(() => {
     const isAnyChildLoading = [mainCityLoading].some((state) => state);
     setLoadings(isAnyChildLoading);
   }, [mainCityLoading]);
 
+
+  // useEffect(() => {
+  //   if (mainCityData && mainCityData.data) {
+  //     dispatch(
+  //       get5DaysForecast({
+  //         lat: mainCityData.data.coord.lat,
+  //         lon: mainCityData.data.coord.lon,
+  //         unit,
+  //       })
+  //     );
+  //     setPosition([mainCityData.data.coord.lat, mainCityData.data.coord.lon]);
+  //   }
+  // }, [mainCityData, dispatch, unit]);
+
+  // useEffect(() => {
+  //   navigator.geolocation.getCurrentPosition((pos) => {
+  //     const { latitude, longitude } = pos.coords;
+  //     setPosition([latitude, longitude]);
+  //   });
+  // }, []);
+
+  // const handleMainCitySearch = async (e) => {
+  //   e.preventDefault();
+  //   if (!mainCityInput.trim()) return;
+
+  //   setCity(mainCityInput);
+  //   dispatch(getMainCityData({ city: mainCityInput, unit }));
+  //   setMainCityInput("");
+  //   dispatch(clearMainCitySuggestions());
+  //   setCarouselIndex(0);
+  // };
   useEffect(() => {
     if (mainCityData && mainCityData.data) {
       dispatch(
@@ -158,12 +242,14 @@ function App() {
     e.preventDefault();
     if (!mainCityInput.trim()) return;
 
-    setCity(mainCityInput);
+    setMainCity(mainCityInput);
+    setSelectedCity(mainCityInput);
     dispatch(getMainCityData({ city: mainCityInput, unit }));
     setMainCityInput("");
     dispatch(clearMainCitySuggestions());
     setCarouselIndex(0);
   };
+
 
   const getHourlyForecast = () => {
     if (!forecastData || !forecastData.list) return [];
@@ -210,15 +296,6 @@ function App() {
   const toggleUnit = () => {
     setUnit((prevUnit) => (prevUnit === "metric" ? "imperial" : "metric"));
   };
-
-  // useEffect(() => {
-  //   if (notificationMessage) {
-  //     const timer = setTimeout(() => {
-  //       dispatch(clearNotificationMessage());
-  //     }, 3000);
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [notificationMessage, dispatch]);
 
   useEffect(() => {
     if (notificationMessage) {
@@ -268,9 +345,6 @@ function App() {
           dispatch(clearMainCitySuggestions());
         }, 400);
         dispatch(setNotificationMessage({ message: `${mainCityInput} added successfully to your favourites.`, type: 'success' }));
-        // dispatch(addCityToFavorites({ city: mainCityInput, unit: "metric" }));
-        // setMainCityInput("");
-        // dispatch(clearMainCitySuggestions());
       }
     }
     else {
@@ -278,18 +352,17 @@ function App() {
     }
   };
 
-  // useEffect(() => {
-  //   selectedCities.forEach(city => {
-  //     dispatch(getMainCityData({ city: city.city, unit }));
-  //   });
-  // }, [unit, dispatch]);
-
-  // check
+  // const handleInterestedCityClick = (city) => {
+  //   setCity(city);
+  //   dispatch(getMainCityData({ city, unit }));
+  //   setCarouselIndex(selectedCities.findIndex(c => c.city === city) + 1);
+  // };
   const handleInterestedCityClick = (city) => {
-    setCity(city);
+    setSelectedCity(city);
     dispatch(getMainCityData({ city, unit }));
     setCarouselIndex(selectedCities.findIndex(c => c.city === city) + 1);
   };
+
 
   useEffect(() => {
     localStorage.setItem('interestedCities', JSON.stringify(selectedCities));
@@ -306,10 +379,27 @@ function App() {
 
   const carouselCities = [mainCityData, ...selectedCities];
 
+  // const handleCarouselChange = (index) => {
+  //   setCarouselIndex(index);
+  //   const selectedCity = index === 0 ? city : selectedCities[index - 1].city;
+  //   setCity(selectedCity);
+  //   dispatch(getMainCityData({ city: selectedCity, unit }));
+  // };
+
+  // const handlePrevCarousel = () => {
+  //   const newIndex = (carouselIndex - 1 + carouselCities.length) % carouselCities.length;
+  //   handleCarouselChange(newIndex);
+  // };
+
+  // const handleNextCarousel = () => {
+  //   const newIndex = (carouselIndex + 1) % carouselCities.length;
+  //   handleCarouselChange(newIndex);
+  // };
+
   const handleCarouselChange = (index) => {
     setCarouselIndex(index);
-    const selectedCity = index === 0 ? city : selectedCities[index - 1].city;
-    setCity(selectedCity);
+    const selectedCity = index === 0 ? mainCity : selectedCities[index - 1].city;
+    setSelectedCity(selectedCity);
     dispatch(getMainCityData({ city: selectedCity, unit }));
   };
 
@@ -323,6 +413,7 @@ function App() {
     handleCarouselChange(newIndex);
   };
 
+
   const getTemperatureWithUnit = (temp) => {
     return `${Math.round(temp)}°${unit === 'metric' ? 'C' : 'F'}`;
   };
@@ -332,7 +423,8 @@ function App() {
     if (selectedCities.length === 0 && storedCities.length === 0) {
       dispatch(setNotificationMessage({ message: "Click the add button to select your favourite cities", type: 'info' }));
     }
-  }, [selectedCities]); // Add selectedCities as a dependency
+  }, [selectedCities, dispatch]);
+
 
   return (
     <div className={`lg:h-screen p-3 flex flex-col gap-4 lg:gap-2 ${currentTheme === "dark" ? "bg-black text-white" : "bg-gray-300 text-black"}`}>
