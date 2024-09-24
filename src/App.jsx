@@ -12,6 +12,7 @@ import { wind } from "react-icons-kit/feather/wind";
 import { activity } from "react-icons-kit/feather/activity";
 import { chevronLeft } from "react-icons-kit/feather/chevronLeft";
 import { chevronRight } from "react-icons-kit/feather/chevronRight";
+import { location } from 'react-icons-kit/icomoon/location'
 import { useDispatch, useSelector } from "react-redux";
 import {
   get5DaysForecast,
@@ -64,6 +65,7 @@ function App() {
 
   const [mainCityInput, setMainCityInput] = useState("");
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [showNotification, setShowNotification] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -185,7 +187,7 @@ function App() {
 
   const handleRemoveCity = (city) => {
     dispatch(removeCity(city));
-    dispatch(setNotificationMessage({ message: `${city} removed successfully!`, type: 'success' }));
+    dispatch(setNotificationMessage({ message: `${city} removed successfully from your favourite cities!`, type: 'success' }));
     if (carouselIndex > 0) setCarouselIndex(carouselIndex - 1);
   };
 
@@ -209,24 +211,39 @@ function App() {
     setUnit((prevUnit) => (prevUnit === "metric" ? "imperial" : "metric"));
   };
 
+  // useEffect(() => {
+  //   if (notificationMessage) {
+  //     const timer = setTimeout(() => {
+  //       dispatch(clearNotificationMessage());
+  //     }, 3000);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [notificationMessage, dispatch]);
+
   useEffect(() => {
     if (notificationMessage) {
+      setShowNotification(true);
       const timer = setTimeout(() => {
+        setShowNotification(false);
         dispatch(clearNotificationMessage());
       }, 3000);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+      };
+    } else {
+      setShowNotification(false);
     }
   }, [notificationMessage, dispatch]);
 
   useEffect(() => {
     if (mainCityData && mainCityData.data && mainCityData.data.weather[0].main === "Rain") {
-      dispatch(setNotificationMessage({ message: `Rain is expected in ${mainCityData.data.name} in the coming hours.`, type: 'info' }));
+      dispatch(setNotificationMessage({ message: `Rain is expected in ${mainCityData.data.name} in the coming hours. Be prepared!`, type: 'warning' }));
     }
     else if (mainCityData && mainCityData.data && mainCityData.data.weather[0].main === "Clouds") {
       dispatch(setNotificationMessage({ message: `Cloudy weather is expected in ${mainCityData.data.name} in the coming hours.`, type: 'info' }));
     }
     else if (mainCityData && mainCityData.data && mainCityData.data.weather[0].main === "Clear") {
-      dispatch(setNotificationMessage({ message: `Clear weather expected in ${mainCityData.data.name} in the coming hours.`, type: 'info' }));
+      dispatch(setNotificationMessage({ message: `Clear weather expected in ${mainCityData.data.name}. Your are good to go!`, type: 'info' }));
     }
   }, [mainCityData, dispatch]);
 
@@ -243,15 +260,24 @@ function App() {
       if (selectedCities.length >= 3) {
         dispatch(setNotificationMessage({ message: "You can't add more than 3 cities.", type: 'error' }));
       } else if (selectedCities.some(city => city.city.toLowerCase() === mainCityInput.toLowerCase())) {
-        dispatch(setNotificationMessage({ message: "This city is already in your favorites.", type: 'error' }));
+        dispatch(setNotificationMessage({ message: "This city is already exists in your favorites cities.", type: 'error' }));
       } else {
-        dispatch(addCityToFavorites({ city: mainCityInput, unit: "metric" }));
-        dispatch(setNotificationMessage({ message: `${mainCityInput} added successfully.`, type: 'success' }));
-        setMainCityInput("");
-        dispatch(clearMainCitySuggestions());
+        setTimeout(() => {
+          dispatch(addCityToFavorites({ city: mainCityInput, unit: "metric" }));
+          setMainCityInput("");
+          dispatch(clearMainCitySuggestions());
+        }, 400);
+        dispatch(setNotificationMessage({ message: `${mainCityInput} added successfully to your favourites.`, type: 'success' }));
+        // dispatch(addCityToFavorites({ city: mainCityInput, unit: "metric" }));
+        // setMainCityInput("");
+        // dispatch(clearMainCitySuggestions());
       }
     }
+    else {
+      dispatch(setNotificationMessage({ message: "Add a city. You can't set an empty value.", type: 'error' }));
+    }
   };
+
 
   const handleInterestedCityClick = (city) => {
     setCity(city);
@@ -292,7 +318,7 @@ function App() {
   };
 
   const getTemperatureWithUnit = (temp) => {
-    return `${temp}°${unit === 'metric' ? 'C' : 'F'}`;
+    return `${Math.round(temp)}°${unit === 'metric' ? 'C' : 'F'}`;
   };
 
   useEffect(() => {
@@ -303,25 +329,25 @@ function App() {
   }, [selectedCities]); // Add selectedCities as a dependency
 
   return (
-    <div className={`lg:h-screen p-3 flex flex-col gap-4 lg:gap-2 ${currentTheme === "dark" ? "bg-black text-white" : "bg-white text-black"}`}>
+    <div className={`lg:h-screen p-3 flex flex-col gap-4 lg:gap-2 ${currentTheme === "dark" ? "bg-black text-white" : "bg-gray-300 text-black"}`}>
 
       {/* Mobile view Search bar  */}
       <div className="lg:hidden ">
         <div className="flex flex-row justify-between">
           {/* Search bar */}
           <div className={` search-bar lg:w-[38%]`}>
-            <form className={`flex items-center ${currentTheme === 'dark' ? 'bg-[#303136] text-white' : 'bg-white text-black border-2'} rounded-lg h-8`} autoComplete="off" onSubmit={handleMainCitySearch}>
+            <form className={`flex items-center ${currentTheme === 'dark' ? 'bg-[#303136] text-white' : 'bg-gray-100 text-black border-2'} rounded-xl h-8`} autoComplete="off" onSubmit={handleMainCitySearch}>
               <label className="flex items-center justify-center text-gray-500 ml-4 mb-1">
                 <Icon icon={search} size={20} />
               </label>
               <input
                 type="text"
                 className="flex-grow px-4 text-xs h-full outline-none bg-transparent"
-                placeholder="Search City"
+                placeholder="Search and Add City"
                 value={mainCityInput}
                 onChange={handleMainCityInputChange}
               />
-              <button type="button" onClick={handleAddToInterested} className="bg-blue-500 text-xs rounded-r-lg h-full w-10">
+              <button type="button" title="Click the add button to select your favourite cities" onClick={handleAddToInterested} className={`font-semibold ${currentTheme === 'dark' ? 'bg-gray-600 ' : 'bg-gray-400'} text-xs rounded-r-lg h-full w-10`}>
                 add
               </button>
             </form>
@@ -341,16 +367,28 @@ function App() {
             )}
           </div>
           {/* Notifications */}
-          <div className="flex">
+          <div className={`fixed lg:hidden top-2 right-3 z-50 w-64 transition-all duration-500 ease-in-out ${showNotification ? 'translate-x-0' : 'translate-x-full'}`}>
             {notificationMessage && notificationMessage.message && (
-              <div className={`absolute right-0 mr-2 z-10 lg:hidden w-max-80 text-xs px-4 py-2 rounded-lg shadow-md ${notificationMessage.type === 'success' ? 'bg-green-500 text-white' :
-                notificationMessage.type === 'error' ? 'bg-red-500 text-white' :
-                  'bg-blue-500 text-white'
-                }`}>
-                {notificationMessage.message}
+              <div className={`relative p-3 text-sm rounded-lg shadow-md max-w-md ${notificationMessage.type === 'success' ? 'bg-green-500' :
+                notificationMessage.type === 'error' ? 'bg-red-500' : notificationMessage.type === 'warning' ? 'bg-yellow-400' : 'bg-blue-400'} text-white`}>
+
+                {/* Message */}
+                <div className="mr-2">
+
+                  {notificationMessage.message}
+                </div>
+
+                {/* Close Icon */}
+                <button
+                  onClick={() => setShowNotification(false)} // Assuming you have a state like `setShowNotification`
+                  className="absolute top-0 right-0 mt-2 mr-2 text-white text-lg focus:outline-none"
+                >
+                  &times;
+                </button>
               </div>
             )}
           </div>
+
 
 
           <div className="flex items-center bg-[#303136] border-2 rounded-full cursor-pointer relative w-14 h-8"
@@ -387,23 +425,31 @@ function App() {
       {/* Top Section */}
       <div className="h-full flex flex-col gap-4 lg:h-[65%] lg:flex-row lg:gap-3">
         {/* Main City Card */}
-        <div className="w-full h-[400px] lg:w-[30%] lg:h-full mainCardBg p-5 rounded-lg flex flex-col relative">
-          <div className="flex justify-between">
-            <div className="">
-              <div>
-                <p className="text-xs">{formattedDate}</p>
+        <div className="w-full h-[400px] lg:w-[30%] lg:h-full mainCardBg p-5 rounded-xl flex flex-col relative">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-sm font-semibold">{formattedDate}</p>
+              <div className="text-xs font-semibold">
+                {new Date().toLocaleString('en-US', {
+                  hour: 'numeric',
+                  minute: 'numeric',
+                  hour12: true // for 12-hour format
+                })}
               </div>
             </div>
-            <div
-              className="flex items-center bg-gray-300 rounded-xl cursor-pointer relative w-14 h-5 "
-              onClick={toggleUnit}
-            >
-              <div
-                className={`absolute bg-white w-1/2 h-full rounded-xl transition-transform ${unit === "metric" ? "transform translate-x-0" : "transform translate-x-full"
-                  }`}
-              ></div>
-              <span className="absolute left-2 text-sm text-black">C</span>
-              <span className="absolute right-2 text-sm text-black">F</span>
+            <div className="flex space-x-2">
+              <button
+                className={`px-4 py-2 rounded-full ${unit === 'metric' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                onClick={() => setUnit('metric')}
+              >
+                °C
+              </button>
+              <button
+                className={`px-4 py-2 rounded-full ${unit === 'imperial' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                onClick={() => setUnit('imperial')}
+              >
+                °F
+              </button>
             </div>
           </div>
 
@@ -414,63 +460,85 @@ function App() {
           ) : (
             <>
               {mainCityData && mainCityData.error ? (
-                <div className="text-red-500 text-center">{mainCityData.error}</div>
+                <div className="text-red-500 flex justify-center items-center capitalize font-semibold text-center h-full w-full">{mainCityData.error}</div>
               ) : forecastError ? (
-                <div className="text-red-500 text-center">{forecastError}</div>
+                <div className="text-red-500 flex justify-center items-center capitalize font-semibold text-center h-full w-full">{forecastError}</div>
               ) : (
                 carouselCities[carouselIndex] && carouselCities[carouselIndex].data && (
-                  <div className="flex flex-col h-full">
-                    <div className="flex flex-col mt-8 items-center">
-                      <h4 className="text-xl font-bold">{carouselCities[carouselIndex].data.name}</h4>
-                      <div className="flex items-center">
-                        <img
-                          className="w-20 h-20"
-                          src={`https://openweathermap.org/img/wn/${carouselCities[carouselIndex].data.weather[0].icon}@2x.png`}
-                          alt="icon"
-                        />
-                        <h1 className="text-2xl font-bold">
-                          {getTemperatureWithUnit(carouselCities[carouselIndex].data.main.temp)}
-                        </h1>
+                  <div className="flex flex-col w-full h-full">
+                    <div className="flex flex-col items-center">
+                      <div className="flex justify-between mt-4 w-full items-center">
+                        <div className="flex flex-col mt-6 justify-center items-center ">
+                          <div className="flex gap-2 items-center">
+                            <Icon icon={location} size={20} />
+                            <h4 className="text-2xl font-bold">{carouselCities[carouselIndex].data.name}</h4>
+                          </div>
+                          <img
+                            className="w-24 h-24 "
+                            src={`https://openweathermap.org/img/wn/${carouselCities[carouselIndex].data.weather[0].icon}@2x.png`}
+                            alt="icon"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-4 justify-center items-center">
+                          <h1 className="text-6xl font-bold">
+                            {getTemperatureWithUnit(Math.round(carouselCities[carouselIndex].data.main.temp))}
+                          </h1>
+                          <h4 className="capitalize text-md font-bold">{carouselCities[carouselIndex].data.weather[0].description}</h4>
+                        </div>
+
                       </div>
-                      <h4 className="capitalize font-semibold">{carouselCities[carouselIndex].data.weather[0].description}</h4>
                     </div>
 
-                    <div className="space-y-8">
-                      <div className="flex flex-row my-3 mx-4 justify-between">
-                        <p className="text-sm" >Feels like {getTemperatureWithUnit(carouselCities[carouselIndex].data.main.feels_like)}</p>
+                    <div className="">
+                      <div className="lg:flex hidden flex-row justify-between">
+                        <p className="text-sm font-bold" >Feels like {getTemperatureWithUnit(carouselCities[carouselIndex].data.main.feels_like)}</p>
                         <div className="flex space-x-2">
                           <div className="flex items-center text-xs">
                             <Icon icon={arrowUp} size={14} className="" />
-                            <span>{getTemperatureWithUnit(carouselCities[carouselIndex].data.main.temp_max)}</span>
+                            <span className="font-bold">{getTemperatureWithUnit(carouselCities[carouselIndex].data.main.temp_max)}</span>
                           </div>
                           <div className="flex items-center text-xs">
                             <Icon icon={arrowDown} size={14} className="" />
-                            <span>{getTemperatureWithUnit(carouselCities[carouselIndex].data.main.temp_min)}</span>
+                            <span className="font-bold">{getTemperatureWithUnit(carouselCities[carouselIndex].data.main.temp_min)}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex flex-row justify-between mx-2">
+                      <div className="flex flex-row mt-6 justify-between mx-2">
                         <div className="flex flex-col items-center justify-center">
-                          <Icon icon={droplet} size={30} className=" mt-1" />
-                          <span className="text-xs mt-1 font-bold">{carouselCities[carouselIndex].data.main.humidity} %</span>
-                          <p className="text-xs mt-1">Humidity</p>
+                          <Icon icon={droplet} size={40} className=" mt-1" />
+                          <span className="text-xs mt-1 font-semibold">{carouselCities[carouselIndex].data.main.humidity} %</span>
+                          <div className="w-full mt-1 bg-gray-200 dark:bg-gray-500 rounded-full h-2.5">
+                            <div
+                              className="bg-blue-600 h-2.5 rounded-full"
+                              style={{ width: `${mainCityData && mainCityData.data ? mainCityData.data.main.humidity : 0}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-xs mt-1 font-bold">Humidity</p>
                         </div>
 
-                        <div className="border-l-2 border-gray-300 h-20 mx-4 mt-4"></div>
+                        <div className={`border-l-2 ${currentTheme === 'dark' ? 'border-gray-300' : 'border-black'}  h-20 mx-4 mt-4`}></div>
 
                         <div className="flex flex-col items-center justify-center">
-                          <Icon icon={wind} size={30} className=" mt-1" />
-                          <span className="text-xs mt-1 font-bold">{carouselCities[carouselIndex].data.wind.speed} {unit === 'metric' ? 'kph' : 'mph'}</span>
-                          <p className="text-xs mt-1">Wind</p>
+                          <Icon icon={wind} size={40} className=" mt-1" />
+                          <div className="flex text-xs mt-1 font-semibold items-center">
+                            <span>{mainCityData && mainCityData.data && `${mainCityData.data.wind.deg}°`}</span>
+                          </div>
+                          <div className="text-xs font-bold">
+                            {mainCityData && mainCityData.data && `${mainCityData.data.wind.speed} ${unit === 'metric' ? 'km/h' : 'mph'}`}
+                          </div>
+
+                          <p className="text-xs mt-1 font-bold">Wind</p>
                         </div>
 
-                        <div className="border-l-2 border-gray-300 h-20 mx-4 mt-4"></div>
+                        <div className={`border-l-2 ${currentTheme === 'dark' ? 'border-gray-300' : 'border-black'}  h-20 mx-4 mt-4`}></div>
 
                         <div className="flex flex-col items-center justify-center">
-                          <Icon icon={activity} size={30} className="mt-1" />
+                          <Icon icon={activity} size={40} className="mt-1" />
+                          <div className="text-xs mt-1 font-semibold">Normal</div>
                           <span className="text-xs mt-1 font-bold">{carouselCities[carouselIndex].data.main.pressure} hPa</span>
-                          <p className="text-xs mt-1">Pressure</p>
+                          <p className="text-xs mt-1 font-bold">Pressure</p>
                         </div>
                       </div>
                     </div>
@@ -488,21 +556,21 @@ function App() {
               />
             ))}
           </div>
-          <div className="absolute top-1/2 left-0 transform -translate-y-1/2 flex justify-between w-full px-2">
+          {/* <div className="absolute top-1/2 left-0 transform -translate-y-1/2 flex justify-between w-full px-2">
             <button onClick={handlePrevCarousel} className="text-gray-500 hover:text-gray-700">
               <Icon icon={chevronLeft} size={24} />
             </button>
             <button onClick={handleNextCarousel} className="text-gray-500 hover:text-gray-700">
               <Icon icon={chevronRight} size={24} />
             </button>
-          </div>
+          </div> */}
         </div>
 
         {/* Cities you are intrested in section in mobile view */}
-        <div className={`lg:hidden flex flex-col items-center pt-4 w-full h-full lg:w-[30%]  rounded-lg ${currentTheme === 'dark' ? 'bg-[#303136]' : 'bg-white border-2'}`}>
+        <div className={`lg:hidden flex flex-col items-center pt-4 w-full h-full lg:w-[30%]  rounded-xl ${currentTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
           <div className="flex w-full pl-4 mb-4 items-center  gap-2">
             <svg className="hover:text-blue-500 font-semibold text-2xl" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 48 48"><defs><mask id="ipSCityOne0"><g fill="none" stroke-linejoin="round" stroke-width="4"><path stroke="#fff" stroke-linecap="round" d="M4 42h40" /><rect width="12" height="20" x="8" y="22" fill="#fff" stroke="#fff" rx="2" /><rect width="20" height="38" x="20" y="4" fill="#fff" stroke="#fff" rx="2" /><path stroke="#000" stroke-linecap="round" d="M28 32.008h4m-20 0h4m12-9h4m-4-9h4" /></g></mask></defs><path fill="currentColor" d="M0 0h48v48H0z" mask="url(#ipSCityOne0)" /></svg>
-            <h2 className="text-md font-semibold">Cities you are interested in</h2>
+            <h2 className="text-md font-bold">Cities you are interested in</h2>
           </div>
 
           <div className="flex flex-row flex-wrap justify-center w-full gap-3">
@@ -510,7 +578,7 @@ function App() {
               selectedCities.map((city, index) => (
                 <div
                   key={index}
-                  className="flex flex-col bg-blue-500 justify-center w-[29%] items-center my-2  p-3 rounded-xl cursor-pointer hover:bg-gray-400"
+                  className={`flex flex-col ${currentTheme === 'dark' ? 'bg-gray-600' : 'bg-white'} shadow-md  justify-center w-[29%] items-center my-2  p-3 rounded-xl cursor-pointer hover:bg-gray-400`}
                   onClick={() => handleInterestedCityClick(city.city)}
                 >
                   <div className="flex justify-between w-full">
@@ -543,28 +611,28 @@ function App() {
         </div>
 
         {/* Large Screen view of side-bar notification and toggle theme & next 5 days and Map */}
-        <div className={`w-full lg:w-[70%] lg:h-full ${currentTheme === 'dark' ? 'border-none' : 'bg-white border-2 p-3'} rounded-xl flex flex-col  space-y-1 lg:gap-3`}>
+        <div className={`w-full lg:w-[70%] lg:h-full ${currentTheme === 'dark' ? 'border-none' : 'bg-transparent'} rounded-xl flex flex-col  space-y-1 lg:gap-3`}>
           <div className="flex flex-row relative justify-between">
             {/* Search bar */}
             <div className={`hidden lg:block search-bar lg:w-[39%]`}>
-              <form className={`flex items-center ${currentTheme === 'dark' ? 'bg-[#303136] text-white' : 'bg-white text-black border-2'} rounded-lg h-8`} autoComplete="off" onSubmit={handleMainCitySearch}>
+              <form className={`flex items-center ${currentTheme === 'dark' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-black'} rounded-xl h-8`} autoComplete="off" onSubmit={handleMainCitySearch}>
                 <label className="flex items-center justify-center text-gray-500 ml-4 mb-1">
                   <Icon icon={search} size={20} />
                 </label>
                 <input
                   type="text"
                   className="flex-grow px-4 text-xs h-full outline-none bg-transparent"
-                  placeholder="Search City"
+                  placeholder="Search and Add City"
                   value={mainCityInput}
                   onChange={handleMainCityInputChange}
                 />
-                <button type="button" onClick={handleAddToInterested} className="bg-blue-500 text-xs rounded-r-lg h-full w-10">
+                <button type="button" title="Click the add button to select your favourite cities" onClick={handleAddToInterested} className={`font-semibold ${currentTheme === 'dark' ? 'bg-gray-600 ' : 'bg-gray-400'} text-xs rounded-r-lg h-full w-10`}>
                   add
                 </button>
               </form>
               {/* Suggestions */}
               {mainCitySuggestions.length > 0 && (
-                <ul className={`mt-2 ${currentTheme === 'dark' ? 'bg-gray-400' : 'bg-white border-2'} shadow-lg rounded-lg absolute z-50 w-full max-h-60 lg:w-[40%] overflow-auto`}>
+                <ul className={`mt-2 ${currentTheme === 'dark' ? 'bg-gray-600' : 'bg-white '} shadow-lg rounded-lg absolute z-50 w-full max-h-60 lg:w-[40%] overflow-auto`}>
                   {mainCitySuggestions.map((suggestion) => (
                     <li
                       key={`${suggestion.lat}-${suggestion.lon}`}
@@ -578,18 +646,28 @@ function App() {
               )}
             </div>
             {/* Notifications */}
-            <div className="flex">
+            <div className={`fixed hidden lg:block top-2 right-3 z-50 w-64 lg:w-80 transition-all duration-500 ease-in-out ${showNotification ? 'translate-x-0' : 'translate-x-full'}`}>
               {notificationMessage && notificationMessage.message && (
-                <div className={`absolute hidden top-0 right-14 mr-3 z-10 lg:block w-max-80 text-xs px-4 py-2 rounded-lg shadow-md ${notificationMessage.type === 'success' ? 'bg-green-500 text-white' :
-                  notificationMessage.type === 'error' ? 'bg-red-500 text-white' :
-                    'bg-blue-500 text-white'
-                  }`}>
-                  {notificationMessage.message}
+                <div className={`relative p-3 text-sm rounded-lg shadow-md max-w-md ${notificationMessage.type === 'success' ? 'bg-green-500' :
+                  notificationMessage.type === 'error' ? 'bg-red-500' : notificationMessage.type === 'warning' ? 'bg-yellow-400' : 'bg-blue-400'} text-white`}>
+
+                  {/* Message */}
+                  <div className="mr-2">
+
+                    {notificationMessage.message}
+                  </div>
+
+                  {/* Close Icon */}
+                  <button
+                    onClick={() => setShowNotification(false)} // Assuming you have a state like `setShowNotification`
+                    className="absolute top-0 right-0 mt-2 mr-2 text-white text-xl font-bold focus:outline-none"
+                  >
+                    &times;
+                  </button>
                 </div>
               )}
             </div>
-
-            <div className="hidden lg:flex items-center bg-[#303136] border-2 rounded-full cursor-pointer relative w-14 h-8"
+            <div className="hidden lg:flex items-center bg-gray-800 border-2 rounded-full cursor-pointer relative w-14 h-8"
               onClick={() => dispatch(toggleTheme())}
             >
               <div
@@ -620,10 +698,10 @@ function App() {
 
           <div className="flex flex-col lg:flex-row h-[350px] lg:h-[90%] justify-between lg:gap-2">
             {/* Next 5 days Forecast */}
-            <div className={`flex flex-col w-full h-full lg:w-[40%] ${currentTheme === 'dark' ? 'bg-[#303136]' : 'bg-white lg:border-2'} rounded-lg pt-3`}>
+            <div className={`flex flex-col w-full h-full lg:w-[40%] ${currentTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'} rounded-xl pt-3`}>
               <div className="flex gap-2 pl-4 justify-start items-center">
                 <svg className="hover:text-blue-500 font-semibold text-2xl" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M2 19c0 1.7 1.3 3 3 3h14c1.7 0 3-1.3 3-3v-8H2zM19 4h-2V3c0-.6-.4-1-1-1s-1 .4-1 1v1H9V3c0-.6-.4-1-1-1s-1 .4-1 1v1H5C3.3 4 2 5.3 2 7v2h20V7c0-1.7-1.3-3-3-3" /></svg>
-                <h4 className="text-md font-semibold">
+                <h4 className="text-md font-bold">
                   Next 5 Days
                 </h4>
               </div>
@@ -631,13 +709,13 @@ function App() {
                 <div className="flex flex-col h-full pl-4">
                   {filteredForecast.map((data, index) => {
                     const date = new Date(data.dt_txt);
-                    const day = date.toLocaleDateString("en-US", { weekday: "short" });
+                    const day = date.toLocaleDateString("en-US", { weekday: "long" });
                     return (
                       <div
                         key={index}
                         className="flex flex-row justify-between items-center bg-transparent flex-grow"
                       >
-                        <h5 className="text-sm w-[15%] font-semibold">{day}</h5>
+                        <h5 className="text-sm w-[25%] font-bold">{day}</h5>
                         <div className="w-[20%]">
                           <img
                             src={`https://openweathermap.org/img/wn/${data.weather[0].icon}.png`}
@@ -645,10 +723,10 @@ function App() {
                             className="w-10 h-10"
                           />
                         </div>
-                        <h5 className="text-xs w-[25%] font-light capitalize">
+                        <h5 className="text-xs w-[25%] font-semibold capitalize">
                           {data.weather[0].description}
                         </h5>
-                        <h5 className="text-xs w-[40%] text-center">
+                        <h5 className="text-xs w-[40%] text-center font-bold">
                           {getTemperatureWithUnit(data.main.temp_max)} / {getTemperatureWithUnit(data.main.temp_min)}
                         </h5>
                       </div>
@@ -663,7 +741,7 @@ function App() {
             </div>
 
             {/* Map Section */}
-            <div className={`hidden lg:flex items-center w-full h-full lg:w-[60%]  border-2 ${currentTheme === 'dark' ? 'border-[#303136] border-2' : ''} rounded-lg z-10`}>
+            <div className={`hidden lg:flex items-center w-full h-full lg:w-[60%]  border-2 ${currentTheme === 'dark' ? 'border-[#303136] border-2' : ''} rounded-xl z-10`}>
               <div className="h-full w-full">
                 {loadings ? (
                   <div className="flex justify-center items-center  w-full h-full">
@@ -700,20 +778,20 @@ function App() {
       {/* Bottom Section */}
       <div className="h-full w-full lg:h-[35%] flex flex-col lg:flex-row lg:gap-3">
         {/* Bottom Section 1 */}
-        <div className={`hidden lg:flex items-center w-full h-full lg:w-[30%]  rounded-lg ${currentTheme === 'dark' ? 'bg-[#303136]' : 'bg-white border-2'}`}>
-          <div className="flex flex-col h-full w-full rounded-lg p-4">
+        <div className={`hidden lg:flex items-center w-full h-full lg:w-[30%]  rounded-xl ${currentTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
+          <div className="flex flex-col h-full w-full rounded-xl p-4">
             <div className="flex justify-start items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" width="1.25em" height="1em" viewBox="0 0 640 512"><path fill="currentColor" d="M480 48c0-26.5-21.5-48-48-48h-96c-26.5 0-48 21.5-48 48v48h-64V24c0-13.3-10.7-24-24-24s-24 10.7-24 24v72h-64V24c0-13.3-10.7-24-24-24S64 10.7 64 24v72H48c-26.5 0-48 21.5-48 48v320c0 26.5 21.5 48 48 48h544c26.5 0 48-21.5 48-48V240c0-26.5-21.5-48-48-48H480zm96 320v32c0 8.8-7.2 16-16 16h-32c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16m-336 48h-32c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16m-112-16c0 8.8-7.2 16-16 16H80c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16zm432-144c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16h-32c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16zm-304-80v32c0 8.8-7.2 16-16 16h-32c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16m-144-16c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16H80c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16zm144 144c0 8.8-7.2 16-16 16h-32c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16zm-144 16H80c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16m304-48v32c0 8.8-7.2 16-16 16h-32c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16M400 64c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16h-32c-8.8 0-16-7.2-16-16V80c0-8.8 7.2-16 16-16zm16 112v32c0 8.8-7.2 16-16 16h-32c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16" /></svg>
-              <h2 className="text-md font-semibold">Cities you are interested in</h2>
+              <h2 className="text-md font-bold">Cities you are interested in</h2>
             </div>
 
-            <div className="flex flex-col  h-full justify-between mt-6">
+            <div className="flex flex-col h-full justify-between mt-4">
               {selectedCities.length > 0 ? (
                 <div>
                   {selectedCities.map((city, index) => (
                     <div
                       key={index}
-                      className="flex flex-row bg-blue-500 justify-between my-2 items-center px-2 rounded-xl cursor-pointer hover:bg-gray-400 "
+                      className={`flex flex-row ${currentTheme === 'dark' ? 'bg-gray-600' : 'bg-white'} justify-between my-2 items-center px-6 py-1 rounded-xl shadow-md cursor-pointer hover:bg-gray-300`}
                       onClick={() => handleInterestedCityClick(city.city)}
                     >
                       <h5 className="text-sm font-semibold w-[30%]">{city.city}</h5>
@@ -722,7 +800,7 @@ function App() {
                         alt="icon"
                         className="w-10 h-10"
                       />
-                      <h5 className="text-sm">{getTemperatureWithUnit(city.data.main.temp)}</h5>
+                      <h5 className="text-sm font-bold">{getTemperatureWithUnit(city.data.main.temp)}</h5>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -747,14 +825,17 @@ function App() {
         </div>
 
         {/* Bottom Section 2 */}
-        <div className={`flex flex-col w-full h-full lg:w-[69%] pt-4 ${currentTheme === 'dark' ? 'bg-[#303136]' : 'bg-white border-2'}  rounded-lg`}>
+        <div className={`flex flex-col w-full h-full lg:w-[69%] pt-4 ${currentTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'} rounded-xl`}>
           <div className="flex justify-start gap-2 pl-4 items-center">
-            <svg className="hover:text-blue-500 font-semibold text-2xl" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 36 36"><path fill="currentColor" d="M18 2a16 16 0 1 0 16 16A16 16 0 0 0 18 2m6.2 21.18a1 1 0 0 1-1.39.28l-5.9-4v-8.71a1 1 0 0 1 2 0v7.65l5 3.39a1 1 0 0 1 .29 1.39m-.35-14.95a11.39 11.39 0 1 0-8.54 20.83L15 30.63a13 13 0 1 1 9.7-23.77Z" class="clr-i-solid clr-i-solid-path-1" /><path fill="none" d="M0 0h36v36H0z" /></svg>
-            <h4 className="text-md font-semibold">Hourly Forecast</h4>
+            <svg className="hover:text-blue-500 font-semibold text-2xl" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 36 36">
+              <path fill="currentColor" d="M18 2a16 16 0 1 0 16 16A16 16 0 0 0 18 2m6.2 21.18a1 1 0 0 1-1.39.28l-5.9-4v-8.71a1 1 0 0 1 2 0v7.65l5 3.39a1 1 0 0 1 .29 1.39m-.35-14.95a11.39 11.39 0 1 0-8.54 20.83L15 30.63a13 13 0 1 1 9.7-23.77Z" className="clr-i-solid clr-i-solid-path-1" />
+              <path fill="none" d="M0 0h36v36H0z" />
+            </svg>
+            <h4 className="text-md font-bold">Hourly Forecast</h4>
           </div>
-          <div className="overflow-y-auto h-full scroll-container">
+          <div className="overflow-x-auto h-full scroll-container">
             {hourlyForecast.length > 0 ? (
-              <div className="flex flex-row mt-2 gap-1 p-1">
+              <div className="flex flex-row mt-4 ml-3 lg:p-1 p-2 gap-2">
                 {hourlyForecast.map((data, index) => {
                   const date = new Date(data.dt_txt);
                   const hour = date.getHours();
@@ -763,30 +844,28 @@ function App() {
                   return (
                     <div
                       key={index}
-                      // hover:bg-gray-500 hover:border-2 hover:rounded-xl
-                      className="w-full max-w-[150px] h-full p-6 mt-2 flex flex-col  items-center justify-between "
+                      className={`flex-shrink-0 w-[120px] ${currentTheme === 'dark' ? 'bg-gray-600' : 'bg-white'} rounded-2xl shadow-xl h-[160px] py-3 px-2 flex flex-col items-center justify-between`}
                     >
                       <div className="flex items-center justify-center w-full">
-                        <span className="text-xs font-semibold whitespace-nowrap">{getTemperatureWithUnit(Math.round(data.main.temp))}</span>
+                        <span className="text-lg font-bold whitespace-nowrap">{getTemperatureWithUnit(Math.round(data.main.temp))}</span>
                       </div>
 
                       <img
                         src={`https://openweathermap.org/img/wn/${data.weather[0].icon}.png`}
                         alt="icon"
-                        className="w-10 h-10 mb-2"
+                        className="w-10 h-10"
                       />
-                      <div className="flex items-center justify-center w-full mb-2">
-                        <span className="text-xs font-light truncate" title={data.weather[0].description}>
+                      <div className="flex items-center justify-center w-full">
+                        <span className="text-xs font-light truncate w-full text-center" title={data.weather[0].description}>
                           {data.weather[0].description}
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-center truncate gap-1 w-full">
-                        <span className="text-xs font-semibold">
+                      <div className="flex items-center justify-center w-full">
+                        <span className="text-xs font-bold">
                           {`${hour12}:00 ${ampm}`}
                         </span>
                       </div>
-
                     </div>
                   );
                 })}
@@ -800,7 +879,7 @@ function App() {
         </div>
 
         {/* Map in the mobile view */}
-        <div className={`lg:hidden flex items-center w-full h-[300px] mt-4 lg:w-[60%]  border-2 ${currentTheme === 'dark' ? 'border-[#303136] border-2' : ''} rounded-lg z-10`}>
+        <div className={`lg:hidden flex items-center w-full h-[300px] mt-4 lg:w-[60%]  border-2 ${currentTheme === 'dark' ? 'border-[#303136]' : 'border-gray-100'} rounded-xl z-10`}>
           <div className="h-full w-full">
             {loadings ? (
               <div className="flex justify-center items-center  w-full h-full">
