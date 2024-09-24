@@ -1168,7 +1168,7 @@ function App() {
   }, [mainCityData, dispatch]);
 
   const handleMainSuggestionClick = (suggestion) => {
-    setCity(suggestion.name);
+    setMainCity(suggestion.name);
     dispatch(getMainCityData({ city: suggestion.name, unit }));
     setMainCityInput(suggestion.name);
     dispatch(clearMainCitySuggestions());
@@ -1388,20 +1388,6 @@ function App() {
                 })}
               </div>
             </div>
-            {/* <div className="flex space-x-2">
-              <button
-                className={`px-4 py-2 rounded-full ${unit === 'metric' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                onClick={() => setUnit('metric')}
-              >
-                °C
-              </button>
-              <button
-                className={`px-4 py-2 rounded-full ${unit === 'imperial' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                onClick={() => setUnit('imperial')}
-              >
-                °F
-              </button>
-            </div> */}
             <div className="flex space-x-2">
               <button
                 className={`px-4 py-2 rounded-full ${unit === 'metric' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
