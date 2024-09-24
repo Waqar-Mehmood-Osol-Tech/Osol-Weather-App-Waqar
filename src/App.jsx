@@ -278,7 +278,13 @@ function App() {
     }
   };
 
+  // useEffect(() => {
+  //   selectedCities.forEach(city => {
+  //     dispatch(getMainCityData({ city: city.city, unit }));
+  //   });
+  // }, [unit, dispatch]);
 
+  // check
   const handleInterestedCityClick = (city) => {
     setCity(city);
     dispatch(getMainCityData({ city, unit }));
@@ -482,7 +488,7 @@ function App() {
 
                         <div className="flex flex-col gap-4 justify-center items-center">
                           <h1 className="text-6xl font-bold">
-                            {getTemperatureWithUnit(Math.round(carouselCities[carouselIndex].data.main.temp))}
+                            {getTemperatureWithUnit(carouselCities[carouselIndex].data.main.temp)}
                           </h1>
                           <h4 className="capitalize text-md font-bold">{carouselCities[carouselIndex].data.weather[0].description}</h4>
                         </div>
@@ -556,14 +562,14 @@ function App() {
               />
             ))}
           </div>
-          {/* <div className="absolute top-1/2 left-0 transform -translate-y-1/2 flex justify-between w-full px-2">
+          <div className="absolute top-1/2 left-0 transform -translate-y-1/2 flex justify-between w-full px-2">
             <button onClick={handlePrevCarousel} className="text-gray-500 hover:text-gray-700">
               <Icon icon={chevronLeft} size={24} />
             </button>
             <button onClick={handleNextCarousel} className="text-gray-500 hover:text-gray-700">
               <Icon icon={chevronRight} size={24} />
             </button>
-          </div> */}
+          </div>
         </div>
 
         {/* Cities you are intrested in section in mobile view */}
