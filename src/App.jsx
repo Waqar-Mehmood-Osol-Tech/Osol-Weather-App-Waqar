@@ -1006,7 +1006,6 @@ function App() {
   const [loadings, setLoadings] = useState(true);
   const allLoadings = [mainCityLoading, citySearchLoading, forecastLoading];
 
-
   useEffect(() => {
     const fetchCityFromIP = async () => {
       try {
@@ -1059,8 +1058,6 @@ function App() {
     setLoadings(isAnyChildLoading);
   }, [mainCityLoading]);
 
-
-
   useEffect(() => {
     if (mainCityData && mainCityData.data) {
       dispatch(
@@ -1092,7 +1089,6 @@ function App() {
     dispatch(clearMainCitySuggestions());
     setCarouselIndex(0);
   };
-
 
   const getHourlyForecast = () => {
     if (!forecastData || !forecastData.list) return [];
@@ -1135,10 +1131,6 @@ function App() {
     setMainCityInput(e.target.value);
     fetchMainCitySuggestions(e.target.value);
   };
-
-  // const toggleUnit = () => {
-  //   setUnit((prevUnit) => (prevUnit === "metric" ? "imperial" : "metric"));
-  // };
 
   useEffect(() => {
     if (notificationMessage) {
@@ -1195,13 +1187,11 @@ function App() {
     }
   };
 
-
   const handleInterestedCityClick = (city) => {
     setSelectedCity(city);
     dispatch(getMainCityData({ city, unit }));
     setCarouselIndex(selectedCities.findIndex(c => c.city === city) + 1);
   };
-
 
   useEffect(() => {
     localStorage.setItem('interestedCities', JSON.stringify(selectedCities));
@@ -1217,8 +1207,6 @@ function App() {
   }, []);
 
   const carouselCities = [mainCityData, ...selectedCities];
-
-
 
   const handleCarouselChange = (index) => {
     setCarouselIndex(index);
@@ -1237,18 +1225,6 @@ function App() {
     handleCarouselChange(newIndex);
   };
 
-  // const convertTemperature = (temp, unit) => {
-  //   if (unit === 'imperial') {
-  //     return ((temp * 9) / 5 + 32);
-  //   }
-  //   return temp;
-  // };
-
-  // const getTemperatureWithUnit = (temp) => {
-  //   const convertedTemp = convertTemperature(temp, unit);
-  //   return `${Math.round(convertedTemp  )}°${unit === 'metric' ? 'C' : 'F'}`;
-  // };
-
   // Function 1: For next 5 days forecast, hourly forecast, and carousel index 1
   const getTemperatureWithoutConversion = (temp) => {
     return `${Math.round(temp)}°${unit === 'metric' ? 'C' : 'F'}`;
@@ -1266,18 +1242,12 @@ function App() {
     setUnit((prevUnit) => (prevUnit === "metric" ? "imperial" : "metric"));
   };
 
-
-  // const getTemperatureWithUnit = (temp) => {
-  //   return `${Math.round(temp)}°${unit === 'metric' ? 'C' : 'F'}`;
-  // };
-
   useEffect(() => {
     const storedCities = JSON.parse(localStorage.getItem('interestedCities')) || [];
     if (selectedCities.length === 0 && storedCities.length === 0) {
       dispatch(setNotificationMessage({ message: "Click the add button to select your favourite cities", type: 'info' }));
     }
   }, [selectedCities, dispatch]);
-
 
   return (
     <div className={`lg:h-screen p-3 flex flex-col gap-4 lg:gap-2 ${currentTheme === "dark" ? "bg-black text-white" : "bg-gray-300 text-black"}`}>
@@ -1531,6 +1501,7 @@ function App() {
               <Icon icon={chevronRight} size={24} />
             </button>
           </div> */}
+
         </div>
 
         {/* Cities you are intrested in section in mobile view */}
@@ -1702,7 +1673,7 @@ function App() {
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full w-full">
-                  Loading...
+                  Fetching Data!! Please wait...
                 </div>
               )}
             </div>
@@ -1726,8 +1697,6 @@ function App() {
                           {carouselCities[carouselIndex] && carouselCities[carouselIndex].data && (
                             <>
                               <h3>{carouselCities[carouselIndex].data.name}</h3>
-                              {/* <p>Temperature: {getTemperatureWithUnit(carouselCities[carouselIndex].data.main.temp)}</p>
-                              <p>Weather: {carouselCities[carouselIndex].data.weather[0].description}</p> */}
                             </>
                           )}
                         </Popup>
@@ -1839,7 +1808,7 @@ function App() {
               </div>
             ) : (
               <div className="flex justify-center items-center h-full w-full">
-                Loading...
+                Fetching Data!! Please wait...
               </div>
             )}
           </div>
@@ -1864,8 +1833,6 @@ function App() {
                       {carouselCities[carouselIndex] && carouselCities[carouselIndex].data && (
                         <>
                           <h3>{carouselCities[carouselIndex].data.name}</h3>
-                          {/* <p>Temperature: {getTemperatureWithUnit(carouselCities[carouselIndex].data.main.temp)}</p>
-                          <p>Weather: {carouselCities[carouselIndex].data.weather[0].description}</p> */}
                         </>
                       )}
                     </Popup>
