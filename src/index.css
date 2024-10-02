@@ -23,7 +23,7 @@
 }
 
 .scroll-container::-webkit-scrollbar-thumb {
-    background-color: #888;
+    background-color: transparent;
     border-radius: 4px;
 }
 
@@ -32,6 +32,9 @@
 }
 
 .mainCardBg {
-    background: rgb(77, 126, 255);
-    background: linear-gradient(360deg, rgba(77, 126, 255, 1) 0%, rgba(109, 189, 253, 1) 100%);
+    /* background: rgb(77, 126, 255);
+    background: linear-gradient(360deg, rgba(77, 126, 255, 1) 0%, rgba(109, 189, 253, 1) 100%); */
+    background: linear-gradient(to bottom right, #1a365d, #2d3748);
 }
+
+
