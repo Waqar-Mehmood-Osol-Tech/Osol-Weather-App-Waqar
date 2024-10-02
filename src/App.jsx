@@ -1920,7 +1920,7 @@
 
 
 // Final App
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import debounce from 'lodash.debounce';
 import Icon from "react-icons-kit";
 import 'leaflet/dist/leaflet.css';
@@ -1994,6 +1994,9 @@ function App() {
   const [showHourlyDetails, setShowHourlyDetails] = useState(false);
   const [showDailyDetails, setShowDailyDetails] = useState(false);
 
+  // For auto scroll
+  const hourlyForecastRef = useRef(null);
+  const dailyForecastRef = useRef(null);
 
   const dispatch = useDispatch();
 
@@ -2011,7 +2014,6 @@ function App() {
 
   const [loadings, setLoadings] = useState(true);
   const allLoadings = [mainCityLoading, citySearchLoading, forecastLoading];
-
 
   const fetchCoordinatesFromCity = async (city) => {
     try {
@@ -2031,22 +2033,7 @@ function App() {
     }
   };
 
-  // const fetchCityFromIP = async () => {
-  //   try {
-  //     const response = await axios.get('https://ipapi.co/json/');
-  //     const cityName = response.data.city || 'Lahore';
-  //     await fetchCoordinatesFromCity(cityName);
-  //     setMainCity(cityName);
-  //     setSelectedCity(cityName);
-  //   } catch (error) {
-  //     console.error('Error fetching city name:', error);
-  //     await fetchCoordinatesFromCity('Lahore');
-  //   } finally {
-  //     setLoadings(false);
-  //   }
-  // };
-
-
+  // https://ipinfo.io
   // const fetchCityFromIP = async () => {
   //   try {
   //     const response = await axios.get('https://ipinfo.io/json?token=1fafefa068763f');
@@ -2064,7 +2051,7 @@ function App() {
   //   }
   // };
 
-
+  // https://api.ipgeolocation.io 
   const fetchCityFromIP = async () => {
     try {
       const apiKey = '3a8d106666dc43f9afd2de85cd29715e';
@@ -2154,14 +2141,6 @@ function App() {
 
   const filteredForecast = filterForecastByFirstObjTime(forecastData?.list);
 
-  // const handleRemoveCity = (city) => {
-  //   dispatch(removeCity(city));
-  //   dispatch(setNotificationMessage({ message: `${city} removed successfully from your favourite cities!`, type: 'success' }));
-  //   if (carouselIndex > 0) setCarouselIndex(carouselIndex - 1);
-  //   else if(carouselIndex === 1) fetchCityFromIP();
-  // };
-
-
   const handleRemoveCity = (city) => {
     const currentIndex = selectedCities.findIndex(c => c.city === city);
 
@@ -2183,67 +2162,6 @@ function App() {
     });
 
   };
-
-
-  // // const handleRemoveCity = (city) => {
-  // //   const currentIndex = selectedCities.findIndex(c => c.city === city);
-  // //   dispatch(removeCity(city));
-  // //   dispatch(setNotificationMessage({ message: `${city} removed successfully from your favourite cities!`, type: 'success' }));
-
-  // //   // Update carouselIndex
-  // //   if (carouselIndex > currentIndex + 1) {
-  // //     setCarouselIndex(carouselIndex - 1);
-  // //   } else if (carouselIndex === currentIndex + 1) {
-  // //     setCarouselIndex(Math.max(carouselIndex - 1, 0));
-  // //   }
-  // // };
-
-  // // const handleRemoveCity = useCallback((city) => {
-  // //   const currentIndex = selectedCities.findIndex(c => c.city === city);
-
-  // //   // Update carouselIndex first
-  // //   if (carouselIndex > currentIndex + 1) {
-  // //     setCarouselIndex(prev => prev - 1);
-  // //   } else if (carouselIndex === currentIndex + 1) {
-  // //     setCarouselIndex(prev => Math.max(prev - 1, 0));
-  // //   }
-
-  // //   // Then dispatch the remove action
-  // //   dispatch(removeCity(city));
-  // //   dispatch(setNotificationMessage({ message: `${city} removed successfully from your favourite cities!`, type: 'success' }));
-  // // }, [selectedCities, carouselIndex, dispatch]);
-
-
-  // const handleRemoveCity = useCallback((city) => {
-  //   const currentIndex = selectedCities.findIndex(c => c.city === city);
-
-  //   if (currentIndex === -1) {
-  //     // City not found; optionally handle this case
-  //     return;
-  //   }
-
-  //   // Dispatch the remove action first to update the selectedCities
-  //   dispatch(removeCity(city));
-
-  //   // Dispatch the notification message
-  //   dispatch(setNotificationMessage({
-  //     message: `${city} removed successfully from your favourite cities!`,
-  //     type: 'success'
-  //   }));
-
-  // Adjust the carouselIndex based on the removed city's position
-  //   setCarouselIndex(prevIndex => {
-  //     if (prevIndex > currentIndex) {
-  //       // If the carousel was after the removed city, decrement the index
-  //       return prevIndex - 1;
-  //     } else if (prevIndex === currentIndex) {
-  //       // If the carousel was at the removed city, move to the previous index or stay at 0
-  //       return Math.max(prevIndex - 1, 0);
-  //     }
-  //     // If the carousel was before the removed city, no change
-  //     return prevIndex;
-  //   });
-  // }, [selectedCities, dispatch]);
 
   const fetchMainCitySuggestions = useCallback(
     debounce((query) => {
@@ -2291,7 +2209,7 @@ function App() {
   const handleMainSuggestionClick = (suggestion) => {
     setMainCity(suggestion.name);
     dispatch(getMainCityData({ city: suggestion.name, unit }));
-    setMainCityInput(suggestion.name);
+    setMainCityInput("");
     dispatch(clearMainCitySuggestions());
     setCarouselIndex(0);
   };
@@ -2310,10 +2228,15 @@ function App() {
           dispatch(clearMainCitySuggestions());
         }, 400);
         dispatch(setNotificationMessage({ message: `${carouselCities[0].data.name} added successfully to your favourites.`, type: 'success' }));
+        setMainCityInput("")
+        dispatch(clearMainCitySuggestions());
+        //  added above
       }
     }
     else {
       dispatch(setNotificationMessage({ message: "Add a city. You can't set an empty value.", type: 'error' }));
+      setMainCityInput("")
+      dispatch(clearMainCitySuggestions());
     }
   };
 
@@ -2337,13 +2260,6 @@ function App() {
   }, []);
 
   const carouselCities = [mainCityData, ...selectedCities];
-
-  // const handleCarouselChange = (index) => {
-  //   setCarouselIndex(index);
-  //   const selectedCity = index === 0 ? mainCity : selectedCities[index - 1].city;
-  //   setSelectedCity(selectedCity);
-  //   dispatch(getMainCityData({ city: selectedCity, unit }));
-  // }
 
   const handleCarouselChange = (index) => {
     const maxIndex = carouselCities.length - 1;
@@ -2399,8 +2315,10 @@ function App() {
     color: isDark ? '#ffffff' : '#000000',
   };
 
+
   const cardStyle = {
-    background: isDark ? '#2d3748' : '#ffffff',
+    background: `linear-gradient(135deg, ${currentTheme === "dark" ? "#2d3748" : "#e2e8f0"}, ${currentTheme === "dark" ? "#1a202c" : "#cbd5e0"
+      })`,
     borderRadius: '8px',
     padding: '16px',
     marginBottom: '16px',
@@ -2439,7 +2357,7 @@ function App() {
       ? "bg-black text-white"
       : "bg-gray-300 text-black"
       }`}>
-      <div className={`lg:h-screen p-3 flex flex-col lg:flex-row gap-4 lg:gap-2 `}>
+      <div className={`lg:h-screen p-3 flex flex-col lg:flex-row gap-2 lg:gap-2 `}>
 
         {/* Mobile view Search bar  */}
         <div className="lg:hidden ">
@@ -2453,12 +2371,18 @@ function App() {
                 <input
                   type="text"
                   className="flex-grow px-4 text-xs h-full outline-none bg-transparent"
-                  placeholder="Search and Add City"
+                  placeholder="Search City"
                   value={mainCityInput}
                   onChange={handleMainCityInputChange}
                 />
-                <button type="button" title="Click the add button to select your favourite cities" onClick={handleAddToInterested} className={`font-semibold ${currentTheme === 'dark' ? 'bg-gray-600 ' : 'bg-gray-400'} text-xs rounded-r-lg h-full w-10`}>
-                  Add
+                <button type="button" title="Click to see the current city forecast"
+                  onClick={() => {
+                    fetchCityFromIP()
+                    handleCarouselChange(0)
+                  }}
+                  className={`font-semibold ${currentTheme === "dark" ? "newSectionBgDark" : "newSectionBgLight"
+                    } text-xs rounded-r-lg h-full w-10`}>
+                  <Icon icon={location} size={20} />
                 </button>
               </form>
               {/* Suggestions */}
@@ -2531,9 +2455,9 @@ function App() {
         </div>
 
         {/* Left Section */}
-        <div className="w-full lg:w-[30%] h-screen">
+        <div className="w-full lg:w-[30%] lg:h-screen h-fit">
           {/* Main City Card */}
-          <div className={`w-full h-[97%] p-5 rounded-xl flex flex-col justify-between relative ${currentTheme === 'dark' ? 'mainCardBg' : 'bg-gray-100'}`}>
+          <div className={`w-full lg:h-[97%] h-[80%] p-5 rounded-xl flex flex-col justify-between relative ${currentTheme === 'dark' ? 'mainCardBg' : 'bg-gray-100'}`}>
             <div className="flex justify-between h-[10%] items-center">
               <div>
                 <p className="text-sm font-semibold">{formattedDate}</p>
@@ -2541,21 +2465,22 @@ function App() {
                   {new Date().toLocaleString('en-US', {
                     hour: 'numeric',
                     minute: 'numeric',
+                    second: 'numeric',
                     hour12: true // for 12-hour format
                   })}
                 </div>
               </div>
 
               {/* C to F Buttons */}
-              <div className="flex space-x-2">
+              <div className="absolute right-4 space-x-2">
                 <button
-                  className={`px-4 py-2 rounded-full ${unit === 'metric' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`px-4 py-2 rounded-full ${unit === 'metric' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} shadow-lg transition-all duration-300 ease-in-out transform hover:scale-110`}
                   onClick={() => setUnit('metric')}
                 >
                   °C
                 </button>
                 <button
-                  className={`px-4 py-2 rounded-full ${unit === 'imperial' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                  className={`px-4 py-2 rounded-full ${unit === 'imperial' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} shadow-lg transition-all duration-300 ease-in-out transform hover:scale-110`}
                   onClick={() => setUnit('imperial')}
                 >
                   °F
@@ -2564,7 +2489,7 @@ function App() {
             </div>
 
             {loadings ? (
-              <div className="flex justify-center items-center h-full">
+              <div className="flex justify-center items-center lg:h-full h-[600px]">
                 <SphereSpinner loadings={loadings} color="#0D1DA9" size={25} />
               </div>
             ) : (
@@ -2641,15 +2566,15 @@ function App() {
 
                       <div className="h-[50%]">
                         {/* Todays highlights */}
-                        <div className="flex flex-col mt-6">
+                        <div className="flex flex-col mt-6 mb-8">
                           <div className="flex items-center mb-8 gap-2">
                             {/* Icon of Toady highlights */}
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" width="1em" height="1em" viewBox="0 0 512 512"><path fill="currentColor" d="M416 64h-16V48.45c0-8.61-6.62-16-15.23-16.43A16 16 0 0 0 368 48v16H144V48.45c0-8.61-6.62-16-15.23-16.43A16 16 0 0 0 112 48v16H96a64 64 0 0 0-64 64v12a4 4 0 0 0 4 4h440a4 4 0 0 0 4-4v-12a64 64 0 0 0-64-64m61 112H35a3 3 0 0 0-3 3v237a64 64 0 0 0 64 64h320a64 64 0 0 0 64-64V179a3 3 0 0 0-3-3M224 307.43A28.57 28.57 0 0 1 195.43 336h-70.86A28.57 28.57 0 0 1 96 307.43v-70.86A28.57 28.57 0 0 1 124.57 208h70.86A28.57 28.57 0 0 1 224 236.57Z" /></svg>
                             <p className="text-md font-bold">Today's Highlights</p>
                           </div>
-
                           <div className="grid grid-cols-2 lg:grid-cols-2 gap-3">
-                            <div className={`${currentTheme === 'dark' ? 'bg-gray-600' : 'bg-white'} p-3 rounded-lg`}>
+                            <div className={`${currentTheme === "dark" ? "newSectionBgDark" : "newSectionBgLight"
+                              } p-3 rounded-lg`}>
                               <div className="flex items-center gap-2 mb-2 justify-start">
                                 <svg className={`w-8 h-8 ${currentTheme === 'dark' ? 'text-white' : 'text-black'}`} xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21.5q-3.325 0-5.663-2.3T4 13.6q0-1.575.613-3.012T6.35 8.05L12 2.5l5.65 5.55q1.125 1.1 1.738 2.538T20 13.6q0 3.3-2.337 5.6T12 21.5m-6-7.9h12q0-1.175-.45-2.237T16.25 9.5L12 5.3L7.75 9.5q-.85.8-1.3 1.863T6 13.6" /></svg>
                                 <h4 className="text-sm font-bold">Humidity</h4>
@@ -2665,7 +2590,8 @@ function App() {
                               </div>
                             </div>
 
-                            <div className={`${currentTheme === 'dark' ? 'bg-gray-600' : 'bg-white'} p-3 rounded-lg`}>
+                            <div className={`${currentTheme === "dark" ? "newSectionBgDark" : "newSectionBgLight"
+                              } p-3 rounded-lg flex flex-col justify-between`}>
                               <div className="flex items-center gap-2 mb-2">
                                 <svg className={`w-8 h-8 ${currentTheme === 'dark' ? 'text-white' : 'text-black'}`} xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M12 9a3 3 0 0 0-3 3a3 3 0 0 0 3 3a3 3 0 0 0 3-3a3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5a5 5 0 0 1 5-5a5 5 0 0 1 5 5a5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5" /></svg>
                                 <h4 className="text-sm font-bold">Visibility</h4>
@@ -2680,7 +2606,8 @@ function App() {
                               </div>
                             </div>
 
-                            <div className={`${currentTheme === 'dark' ? 'bg-gray-600' : 'bg-white'} p-3 rounded-lg`}>
+                            <div className={`${currentTheme === "dark" ? "newSectionBgDark" : "newSectionBgLight"
+                              } p-3 rounded-lg`}>
                               <div className="flex items-center gap-2 mb-2 justify-start">
                                 <svg className={`w-8 h-8 ${currentTheme === 'dark' ? 'text-white' : 'text-black'}`} xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><g fill="none"><path d="m12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035q-.016-.005-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093q.019.005.029-.008l.004-.014l-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z" /><path fill="currentColor" d="M12 19a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1m6.364-2.05l.707.707a1 1 0 0 1-1.414 1.414l-.707-.707a1 1 0 0 1 1.414-1.414m-12.728 0a1 1 0 0 1 1.497 1.32l-.083.094l-.707.707a1 1 0 0 1-1.497-1.32l.083-.094zM12 6a6 6 0 1 1 0 12a6 6 0 0 1 0-12m-8 5a1 1 0 0 1 .117 1.993L4 13H3a1 1 0 0 1-.117-1.993L3 11zm17 0a1 1 0 1 1 0 2h-1a1 1 0 1 1 0-2zM4.929 4.929a1 1 0 0 1 1.32-.083l.094.083l.707.707a1 1 0 0 1-1.32 1.497l-.094-.083l-.707-.707a1 1 0 0 1 0-1.414m14.142 0a1 1 0 0 1 0 1.414l-.707.707a1 1 0 1 1-1.414-1.414l.707-.707a1 1 0 0 1 1.414 0M12 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1" /></g></svg>
                                 <h4 className="text-sm font-bold mb-2">Sunrise & Sunset</h4>
@@ -2701,7 +2628,8 @@ function App() {
                               </div>
                             </div>
 
-                            <div className={`${currentTheme === 'dark' ? 'bg-gray-600' : 'bg-white'} p-3 rounded-lg`}>
+                            <div className={`${currentTheme === "dark" ? "newSectionBgDark" : "newSectionBgLight"
+                              } p-3 rounded-lg flex flex-col justify-between`}>
                               <div className="flex items-center gap-2 mb-2 justify-start">
                                 <svg className={`w-8 h-8 ${currentTheme === 'dark' ? 'text-white' : 'text-black'}`} xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M4 3h6v2H4zM1 7h5v2H1zm2 12h5v2H3zm10.73-8.39c.77.23 1.3.78 1.57 1.46l4.27-7.11c.65-1.08.3-2.46-.78-3.13c-.87-.52-1.99-.41-2.73.29l-3.43 3.21c-.4.37-.63.9-.63 1.45v3.93c.36-.15 1-.33 1.73-.1m-3.12 1.66c.16-.52.48-.96.89-1.27H3.28C2 11 1 12 1 13.28c0 1.02.67 1.91 1.65 2.19l4.51 1.29c.53.15 1.1.08 1.58-.21l2.69-1.61a2.49 2.49 0 0 1-.82-2.67m11.6 6.34l-2.28-4.11a2.07 2.07 0 0 0-1.26-.96l-3.17-.8c0 .32 0 .66-.11.99A2.48 2.48 0 0 1 13 15.5c-.61 0-1-.22-1-.22V21c-1.1 0-2 .9-2 2h6c0-1.1-.9-2-2-2v-4.28l4.61 4.61c.89.89 2.33.89 3.22 0c.72-.72.88-1.83.38-2.72m-9.65-4.18c.79.24 1.63-.2 1.87-1c.24-.79-.2-1.63-1-1.87c-.79-.24-1.63.2-1.87 1c-.24.79.21 1.63 1 1.87" /></svg>
                                 <h4 className="text-sm font-bold">Wind Status</h4>
@@ -2724,6 +2652,15 @@ function App() {
                 )}
               </>
             )}
+            <div className=" absolute top-1/2 left-0 transform -translate-y-1/2 flex justify-between w-full h-fit px-2">
+              <button onClick={handlePrevCarousel} className="text-transparent ">
+                <Icon icon={chevronLeft} size={24} />
+              </button>
+              <button onClick={handleNextCarousel} className="text-transparent ">
+                <Icon icon={chevronRight} size={24} />
+              </button>
+            </div>
+
             <div className="flex justify-center mt-4">
               {carouselCities.map((_, index) => (
                 <button
@@ -2734,14 +2671,7 @@ function App() {
               ))}
             </div>
 
-            {/* <div className="absolute top-1/2 left-0 transform -translate-y-1/2 flex justify-between w-full px-2">
-            <button onClick={handlePrevCarousel} className="text-gray-500 hover:text-gray-700">
-              <Icon icon={chevronLeft} size={24} />
-            </button>
-            <button onClick={handleNextCarousel} className="text-gray-500 hover:text-gray-700">
-              <Icon icon={chevronRight} size={24} />
-            </button>
-          </div> */}
+
 
             {/* Add Delete Button */}
             {carouselIndex === 0 && (
@@ -2771,10 +2701,10 @@ function App() {
         </div>
 
         {/* Right Section */}
-        <div className="w-full lg:w-[70%] h-screen flex flex-col justify-between gap-2">
+        <div className="w-full lg:w-[70%] lg:h-screen h-fit flex flex-col justify-between gap-2">
 
           {/* Top Section */}
-          <div className="h-full w-full lg:h-[40%] flex flex-col lg:gap-2">
+          <div className="h-fit w-full lg:h-[40%] flex flex-col lg:gap-2">
 
             {/* Search Bar toggle and Theme */}
             <div className="flex flex-row relative justify-between">
@@ -2787,16 +2717,17 @@ function App() {
                   <input
                     type="text"
                     className="flex-grow px-4 text-xs h-full outline-none bg-transparent"
-                    placeholder="Search and Add City"
+                    placeholder="Search City"
                     value={mainCityInput}
                     onChange={handleMainCityInputChange}
                   />
                   <button type="button" title="Click to see the current city forecast"
                     onClick={() => {
-                      fetchCityFromIP
+                      fetchCityFromIP()
                       handleCarouselChange(0)
                     }}
-                    className={`font-semibold ${currentTheme === 'dark' ? 'bg-gray-600 ' : 'bg-gray-400'} text-xs rounded-r-lg h-full w-10`}>
+                    className={`font-semibold ${currentTheme === "dark" ? "newSectionBgDark" : "newSectionBgLight"
+                      } text-xs rounded-r-lg h-full w-10`}>
                     <Icon icon={location} size={20} />
                   </button>
                 </form>
@@ -2837,7 +2768,8 @@ function App() {
                   </div>
                 )}
               </div>
-              <div className="hidden lg:flex items-center bg-gray-800 border-2 rounded-full cursor-pointer relative w-14 h-8"
+              <div className={`hidden lg:flex items-center ${currentTheme === "dark" ? "newSectionBgDark" : "newSectionBgLight"
+                } border-2 rounded-full cursor-pointer relative w-14 h-8`}
                 onClick={() => dispatch(toggleTheme())}
               >
                 <div
@@ -2874,12 +2806,17 @@ function App() {
                     <path fill="currentColor" d="M18 2a16 16 0 1 0 16 16A16 16 0 0 0 18 2m6.2 21.18a1 1 0 0 1-1.39.28l-5.9-4v-8.71a1 1 0 0 1 2 0v7.65l5 3.39a1 1 0 0 1 .29 1.39m-.35-14.95a11.39 11.39 0 1 0-8.54 20.83L15 30.63a13 13 0 1 1 9.7-23.77Z" className="clr-i-solid clr-i-solid-path-1" />
                     <path fill="none" d="M0 0h36v36H0z" />
                   </svg>
-                  <h4 className="text-md font-bold">Hourly Forecast</h4>
+                  <h4 className="text-md font-bold">Today's Forecast</h4>
                 </div>
                 <div>
                   <button
-                    onClick={() => setShowHourlyDetails(!showHourlyDetails)}
-                    className="pr-4 text-blue-500 hover:text-blue-700"
+                    onClick={() => {
+                      setShowHourlyDetails(!showHourlyDetails);
+                      setTimeout(() => {
+                        hourlyForecastRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }, 100);
+                    }}
+                    className="pr-4 text-blue-500 font-semibold hover:text-blue-700"
                   >
                     {showHourlyDetails ? "Hide Details" : "Show Details"}
                   </button>
@@ -2896,7 +2833,8 @@ function App() {
                       return (
                         <div
                           key={index}
-                          className={`flex-shrink-0 w-[120px] ${currentTheme === 'dark' ? 'bg-gray-600' : 'bg-white'} rounded-2xl shadow-xl h-[160px] py-3 px-2 ml-[1.5px] flex flex-col items-center justify-between`}
+                          className={`flex-shrink-0 w-[120px] ${currentTheme === "dark" ? "newSectionBgDark" : "newSectionBgLight"
+                            } rounded-2xl shadow-xl h-[160px] py-3 px-2 ml-[1.5px] flex flex-col items-center justify-between`}
                         >
                           <div className="flex items-center justify-center w-full">
                             <span className="text-lg font-bold whitespace-nowrap">{getTemperatureWithoutConversion(Math.round(data.main.temp))}</span>
@@ -2934,7 +2872,7 @@ function App() {
           </div>
 
           {/* Bottom Section */}
-          <div className="h-full w-full lg:h-[60%] flex flex-col lg:flex-row lg:gap-3">
+          <div className="h-fit w-full lg:h-[60%] flex flex-col lg:flex-row lg:gap-3">
             {/* Large Screen view of side-bar notification and toggle theme & next 5 days and Map */}
             <div className={`w-full lg:h-full ${currentTheme === 'dark' ? 'border-none' : 'bg-transparent'} rounded-xl flex flex-col  space-y-1 lg:gap-3`}>
               <div className="flex flex-col lg:flex-row h-[350px] lg:h-[95%] justify-between lg:gap-2">
@@ -2947,10 +2885,14 @@ function App() {
                         Next 5 Days
                       </h4>
                     </div>
-
                     <button
-                      onClick={() => setShowDailyDetails(!showDailyDetails)}
-                      className="pr-4 text-blue-500 hover:text-blue-700"
+                      onClick={() => {
+                        setShowDailyDetails(!showDailyDetails);
+                        setTimeout(() => {
+                          dailyForecastRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 100);
+                      }}
+                      className="pr-4 text-blue-500 font-semibold hover:text-blue-700"
                     >
                       {showDailyDetails ? "Hide Details" : "Show Details"}
                     </button>
@@ -2964,9 +2906,9 @@ function App() {
                         return (
                           <div
                             key={index}
-                            className="flex flex-row justify-between items-center bg-transparent flex-grow"
+                            className="flex flex-row justify-between items-center bg-transparent gap-5 flex-grow"
                           >
-                            <h5 className="text-sm w-[25%] font-bold">{day}</h5>
+                            <h5 className="text-sm w-[20%] font-bold">{day}</h5>
                             <div className="w-[20%]">
                               <img
                                 src={`https://openweathermap.org/img/wn/${data.weather[0].icon}.png`}
@@ -2977,7 +2919,7 @@ function App() {
                             <h5 className="text-xs w-[25%] font-semibold capitalize">
                               {data.weather[0].description}
                             </h5>
-                            <h5 className="text-xs w-[40%] text-center font-bold">
+                            <h5 className="text-xs w-[35%] text-center font-bold">
                               {getTemperatureWithoutConversion(data.main.temp_max)} / {getTemperatureWithoutConversion(data.main.temp_min)}
                             </h5>
                           </div>
@@ -2992,7 +2934,7 @@ function App() {
                 </div>
 
                 {/* Map Section */}
-                <div className={`hidden lg:flex items-center w-full h-full lg:w-[60%]  ${currentTheme === 'dark' ? 'mainCardBg' : ''} rounded-xl z-10`}>
+                <div className={`hidden lg:flex items-center w-full h-full lg:w-[60%]  ${currentTheme === 'dark' ? 'mainCardBg' : 'bg-gray-100'} rounded-xl z-10`}>
                   <div className="h-full w-full">
                     {loadings ? (
                       <div className="flex justify-center items-center  w-full h-full">
@@ -3032,17 +2974,32 @@ function App() {
         ? "bg-black text-white"
         : "bg-gray-300 text-black"
         }`}>
-        {/* Hourly Forecast Details */}
+
         {showHourlyDetails && (
-          <div className={`w-full ${currentTheme === "dark" ? "mainCardBg" : "bg-gray-100"} rounded-xl p-4`}>
-            <h3 className="text-lg font-bold mb-4">Detailed Hourly Temperature Forecast</h3>
+          <div ref={hourlyForecastRef} className={`w-full ${currentTheme === "dark" ? "mainCardBg" : "bg-gray-100"} rounded-xl p-4`}>
+            <h3 style={titleStyle}>Detailed Daily Forecast</h3>
             {console.log(hourlyForecast)}
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={hourlyForecast}>
+              <LineChart
+                data={hourlyForecast.filter((forecast, index) => index < 12)} // Displaying only the next 12 hours
+              >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="dt_txt" tickFormatter={(tick) => new Date(tick).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} />
-                <YAxis />
-                <Tooltip />
+                <XAxis
+                  dataKey="dt_txt"
+                  tickFormatter={(tick) =>
+                    new Date(tick).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true,
+                    })
+                  }
+                />
+                <YAxis
+                  tickFormatter={(value) => `${getTemperatureWithoutConversion(value)}`} // Add °C or °F based on your function
+                />
+                <Tooltip
+                  formatter={(value) => [`${getTemperatureWithoutConversion(value)}`, "Temp"]} // Customize the tooltip to use your function and show "Temp:"
+                />
                 <Line type="monotone" dataKey="main.temp" stroke="#8884d8" />
               </LineChart>
             </ResponsiveContainer>
@@ -3051,29 +3008,14 @@ function App() {
 
         {/* Daily Forecast Details */}
         {showDailyDetails && (
-          // <div className={`w-full ${currentTheme === "dark" ? "bg-gray-800" : "bg-gray-100"} rounded-xl p-4`}>
-          //   <h3 className="text-lg font-bold mb-4">5-Day Forecast Details</h3>
-          //   {filteredForecast.map((data, index) => (
-          //     <div key={index} className="mb-4 p-2 bg-gray-700 rounded-lg">
-          //       <h4 className="font-bold">{new Date(data.dt_txt).toLocaleDateString()}</h4>
-          //       <p>Temperature: {getTemperatureWithoutConversion(data.main.temp)}</p>
-          //       <p>Humidity: {data.main.humidity}%</p>
-          //       <p>Wind Speed: {data.wind.speed} m/s</p>
-          //       <p>Description: {data.weather[0].description}</p>
-          //     </div>
-          //   ))}
-          // </div>
-          <div className={`w-full ${currentTheme === "dark" ? "mainCardBg" : "bg-gray-100"} rounded-xl p-6 shadow-lg`}>
-            <h3 className="text-2xl font-bold mb-6 text-start">5-Day Forecast Details</h3>
+          <div ref={dailyForecastRef} className={`w-full ${currentTheme === "dark" ? "mainCardBg" : "bg-gray-100"} rounded-xl p-6 shadow-lg`}>
+            <h3 style={titleStyle}>5-Day Forecast Details</h3>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredForecast.map((data, index) => (
                 <div
                   key={index}
-                  className="p-4 rounded-lg transition-all duration-300 hover:scale-105"
-                  style={{
-                    background: `linear-gradient(135deg, ${currentTheme === "dark" ? "#2d3748" : "#e2e8f0"}, ${currentTheme === "dark" ? "#1a202c" : "#cbd5e0"
-                      })`,
-                  }}
+                  className={`p-4 rounded-lg transition-all duration-300 hover:scale-105 ${currentTheme === "dark" ? "newSectionBgDark" : "newSectionBgLight"
+                    }`}
                 >
                   <h4 className="font-bold text-lg mb-3">{new Date(data.dt_txt).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</h4>
                   <div className="space-y-2">
@@ -3100,19 +3042,12 @@ function App() {
           </div>
         )}
 
-        {/* Air Quality Info */}
-        {/* <div className={`w-full ${currentTheme === "dark" ? "bg-gray-800" : "bg-gray-100"} rounded-xl p-4`}>
-          <h3 className="text-lg font-bold mb-4">Air Quality Information</h3>
-          <p>Air Quality Index: Good</p>
-          <p>PM2.5: 10 µg/m³</p>
-          <p>Ozone: 30 ppb</p>
-        </div> */}
-
-
+        {/* Air quality Index  */}
         <div style={containerStyle}>
           <h3 style={titleStyle}>Air Quality Information</h3>
           <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
-            <div style={cardStyle}>
+
+            <div style={cardStyle} className="transition-all duration-300 hover:scale-105">
               <div style={metricTitleStyle}>
                 <span>Air Quality Index</span>
                 <Wind size={36} color="#3182ce" />
@@ -3120,7 +3055,8 @@ function App() {
               <div style={metricValueStyle}>Good</div>
               <p style={metricDescStyle}>Healthy air quality</p>
             </div>
-            <div style={cardStyle}>
+
+            <div style={cardStyle} className="transition-all duration-300 hover:scale-105">
               <div style={metricTitleStyle}>
                 <span>PM2.5</span>
                 <Droplets size={36} color="#6b46c1" />
@@ -3128,7 +3064,8 @@ function App() {
               <div style={metricValueStyle}>10 µg/m³</div>
               <p style={metricDescStyle}>Fine particulate matter</p>
             </div>
-            <div style={cardStyle}>
+
+            <div style={cardStyle} className="transition-all duration-300 hover:scale-105">
               <div style={metricTitleStyle}>
                 <span>Ozone</span>
                 <Sun size={36} color="#d69e2e" />
@@ -3136,6 +3073,37 @@ function App() {
               <div style={metricValueStyle}>30 ppb</div>
               <p style={metricDescStyle}>Ground-level ozone</p>
             </div>
+
+          </div>
+        </div>
+
+        {/* Map in the mobile view */}
+        <div className={`lg:hidden flex items-center w-full h-[300px] mb-2 lg:w-[60%] ${currentTheme === 'dark' ? 'newSectionBgDark' : 'newSectionBgDarkLight'} rounded-xl z-10`}>
+          <div className="h-full w-full">
+            {loadings ? (
+              <div className="flex justify-center items-center  w-full h-full">
+                <SphereSpinner loadings={loadings} color="#0D1DA9" size={30} />
+              </div>
+            ) : (
+              position && (
+                <MapContainer center={position} zoom={10} zoomControl={false} style={{ height: '100%', width: '100%', borderRadius: '0.5rem' }}>
+                  <TileLayer
+                    url={`https://api.maptiler.com/maps/${currentTheme === 'dark' ? 'streets' : 'streets'}/{z}/{x}/{y}.png?key=iww5jN0ZVMDaPpwR0CAA&language=en`}
+                    attribution='&copy; <a href="https://www.maptiler.com/">MapTiler</a>'
+                  />
+                  <Marker position={position} icon={myIcon}>
+                    <Popup>
+                      {carouselCities[carouselIndex] && carouselCities[carouselIndex].data && (
+                        <>
+                          <h3>{carouselCities[carouselIndex].data.name}</h3>
+                        </>
+                      )}
+                    </Popup>
+                  </Marker>
+                  <MapUpdater center={position} />
+                </MapContainer>
+              )
+            )}
           </div>
         </div>
       </div>
