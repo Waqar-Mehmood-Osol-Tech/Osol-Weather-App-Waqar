@@ -2356,7 +2356,7 @@ function App() {
     <div className={`flex flex-col ${currentTheme === "dark"
       ? "bg-black text-white"
       : "bg-gray-300 text-black"
-      }`}>
+      }  gap-0`}>
       <div className={`lg:h-screen p-3 flex flex-col lg:flex-row gap-2 lg:gap-2 `}>
 
         {/* Mobile view Search bar  */}
@@ -2423,7 +2423,8 @@ function App() {
               )}
             </div>
 
-            <div className="flex items-center bg-[#303136] border-2 rounded-full cursor-pointer relative w-14 h-8"
+            <div className={`flex items-center  ${currentTheme === "dark" ? "newSectionBgDark" : "newSectionBgLight"
+              } border-2 rounded-full cursor-pointer relative w-14 h-8`}
               onClick={() => dispatch(toggleTheme())}
             >
               <div
@@ -2616,14 +2617,14 @@ function App() {
                                 <Icon icon={arrowUp} size={14} className="text-yellow-500" />
                                 <span>
                                   {mainCityData && mainCityData.data &&
-                                    new Date(mainCityData.data.sys.sunrise * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    new Date(mainCityData.data.sys.sunrise * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}
                                 </span>
                               </div>
                               <div className="flex items-center text-xs justify-between mt-2">
                                 <Icon icon={arrowDown} size={14} className="text-orange-500" />
                                 <span>
                                   {mainCityData && mainCityData.data &&
-                                    new Date(mainCityData.data.sys.sunset * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    new Date(mainCityData.data.sys.sunset * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}
                                 </span>
                               </div>
                             </div>
@@ -2670,8 +2671,6 @@ function App() {
                 />
               ))}
             </div>
-
-
 
             {/* Add Delete Button */}
             {carouselIndex === 0 && (
@@ -2834,7 +2833,7 @@ function App() {
                         <div
                           key={index}
                           className={`flex-shrink-0 w-[120px] ${currentTheme === "dark" ? "newSectionBgDark" : "newSectionBgLight"
-                            } rounded-2xl shadow-xl h-[160px] py-3 px-2 ml-[1.5px] flex flex-col items-center justify-between`}
+                            } rounded-2xl shadow-xl h-[160px] py-3 px-2 mb-1 ml-[1.5px] flex flex-col items-center justify-between`}
                         >
                           <div className="flex items-center justify-center w-full">
                             <span className="text-lg font-bold whitespace-nowrap">{getTemperatureWithoutConversion(Math.round(data.main.temp))}</span>
@@ -2970,7 +2969,7 @@ function App() {
       </div >
 
       {/* Additional Details */}
-      <div className={`px-3 flex flex-col mt-0 gap-4 lg:gap-2 ${currentTheme === "dark"
+      <div className={`px-3 py-0 flex flex-col gap-2 lg:gap-2 ${currentTheme === "dark"
         ? "bg-black text-white"
         : "bg-gray-300 text-black"
         }`}>
@@ -2996,6 +2995,13 @@ function App() {
                 />
                 <YAxis
                   tickFormatter={(value) => `${getTemperatureWithoutConversion(value)}`} // Add °C or °F based on your function
+                  label={{
+                    value: "Temperature",
+                    angle: -90,
+                    position: "insideLeft",
+                    style: { textAnchor: "middle" },
+
+                  }}
                 />
                 <Tooltip
                   formatter={(value) => [`${getTemperatureWithoutConversion(value)}`, "Temp"]} // Customize the tooltip to use your function and show "Temp:"
