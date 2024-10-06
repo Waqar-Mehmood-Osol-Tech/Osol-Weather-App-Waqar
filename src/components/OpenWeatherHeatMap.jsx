@@ -20,7 +20,7 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY'; // Replace with your actual API key
+const API_KEY = '63426fced634636a262e6d73aa5c7f04'; // Replace with your actual API key
 
 function MapUpdater({ center }) {
     const map = useMap();
@@ -38,7 +38,7 @@ function WeatherLayerSelector({ currentTheme }) {
             <div className="leaflet-control leaflet-bar bg-white dark:bg-gray-800 p-2 rounded-md shadow-md">
                 <h4 className="font-bold mb-2">Weather Layers</h4>
                 <LayersControl position="topright">
-                    <LayersControl.BaseLayer checked name="OpenStreetMap">
+                    <LayersControl.BaseLayer checked name="streets">
                         <TileLayer
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -94,11 +94,11 @@ export default function WeatherMapOpen({ position, carouselCities, carouselIndex
 
     return (
         <div className="relative w-full h-[400px]">
-            <MapContainer 
+            <MapContainer
                 key={mapKey}
-                center={position} 
-                zoom={10} 
-                zoomControl={false} 
+                center={position}
+                zoom={10}
+                zoomControl={false}
                 style={{ height: '100%', width: '100%', borderRadius: '0.5rem' }}
             >
                 <TileLayer
@@ -120,9 +120,8 @@ export default function WeatherMapOpen({ position, carouselCities, carouselIndex
             <div className="absolute top-4 right-4 z-[1000]">
                 <button
                     onClick={() => setShowWeatherLayers(!showWeatherLayers)}
-                    className={`flex items-center space-x-2 p-2 rounded-lg shadow-md ${
-                        currentTheme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'
-                    }`}
+                    className={`flex items-center space-x-2 p-2 rounded-lg shadow-md ${currentTheme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'
+                        }`}
                 >
                     <span className="text-sm font-medium">Weather Layers</span>
                     {showWeatherLayers ? (

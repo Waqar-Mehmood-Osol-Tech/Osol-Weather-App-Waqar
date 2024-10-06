@@ -56,3 +56,17 @@
   max-height: 1000px; /* Adjust this value based on your content */
   opacity: 1;
 }
+
+/* LeafletMap.css */
+.leaflet-popup-content-wrapper {
+  background-color: white;
+}
+
+body.dark-theme .leaflet-popup-content-wrapper {
+  background-color: #1F2937;
+  color: white;
+}
+
+body.dark-theme .leaflet-popup-tip {
+  background-color: #1F2937;
+}

@@ -1954,7 +1954,7 @@ import noDataImg from './assets/no-data.png';
 import { trash2 } from "react-icons-kit/feather/trash2.js";
 import { plus } from "react-icons-kit/feather/plus.js";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
-import { Cloud, Droplets, Thermometer, Sun, Wind } from "lucide-react"
+import { Cloud, Droplets, Thermometer, Sun, Wind, CloudRain } from "lucide-react"
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import { CircleMarker } from 'react-leaflet';
 import WeatherMap from "./components/WeatherMap.jsx";
@@ -1978,6 +1978,15 @@ function MapUpdater({ center }) {
 }
 
 function App() {
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setRefreshTrigger(prev => prev + 1);
+    }, 120 * 60 * 1000); // 5 minutes in milliseconds
+  
+    return () => clearInterval(intervalId);
+  }, []);
 
   const [position, setPosition] = useState(null);
   const now = new Date();
@@ -2087,7 +2096,7 @@ function App() {
 
   useEffect(() => {
     dispatch(getMainCityData({ city: selectedCity, unit }));
-  }, [dispatch, selectedCity, unit]);
+  }, [dispatch, selectedCity, unit, refreshTrigger]);
 
   useEffect(() => {
     const isAnyChildLoading = [mainCityLoading].some((state) => state);
@@ -2105,7 +2114,7 @@ function App() {
       );
       setPosition([mainCityData.data.coord.lat, mainCityData.data.coord.lon]);
     }
-  }, [mainCityData, dispatch, unit]);
+  }, [mainCityData, dispatch, unit, refreshTrigger]);
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition((pos) => {
@@ -2358,27 +2367,32 @@ function App() {
     color: isDark ? '#a0aec0' : '#718096',
   };
 
+  // Function for the Air Quality INfromation
+  const [airQualityData, setAirQualityData] = useState(null);
 
-  const [showHeatmap, setShowHeatmap] = useState(false);
-
-  // Add this function to generate heat map data
-  const generateHeatmapData = () => {
-    if (!mainCityData || !mainCityData.data) return [];
-
-    const { lat, lon } = mainCityData.data.coord;
-    const temp = mainCityData.data.main.temp;
-
-    // Generate some random points around the main city
-    const points = [];
-    for (let i = 0; i < 100; i++) {
-      points.push({
-        lat: lat + (Math.random() - 0.5) * 0.5,
-        lng: lon + (Math.random() - 0.5) * 0.5,
-        intensity: temp + (Math.random() - 0.5) * 10 // Vary temperature slightly
-      });
+  useEffect(() => {
+    if (mainCityData && mainCityData.data) {
+      const { lat, lon } = mainCityData.data.coord;
+      const apiKey = '63426fced634636a262e6d73aa5c7f04';
+      axios.get(`http://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`)
+        .then(response => {
+          setAirQualityData(response.data);
+        })
+        .catch(error => {
+          console.error("Error fetching air quality data:", error);
+        });
     }
+  }, [mainCityData, refreshTrigger]);
 
-    return points;
+  const getAQIDescription = (aqi) => {
+    switch (aqi) {
+      case 1: return "Good";
+      case 2: return "Fair";
+      case 3: return "Moderate";
+      case 4: return "Poor";
+      case 5: return "Very Poor";
+      default: return "Unknown";
+    }
   };
 
   return (
@@ -3083,7 +3097,7 @@ function App() {
         )}
 
         {/* Daily Forecast Details */}
-        {showDailyDetails && (
+        {/* {showDailyDetails && (
           <div ref={dailyForecastRef} className={`w-full ${currentTheme === "dark" ? "mainCardBg" : "bg-gray-100"} rounded-xl p-6 shadow-lg`}>
             <h3 style={titleStyle}>5-Day Forecast Details</h3>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -3116,12 +3130,30 @@ function App() {
               ))}
             </div>
           </div>
+        )} */}
+        {/* Updated styling code */}
+        {showDailyDetails && (
+          <div ref={dailyForecastRef} className={`w-full ${currentTheme === "dark" ? "mainCardBg" : "bg-gray-100"} rounded-xl p-6 shadow-lg`}>
+            <h3 style={titleStyle}>5-Day Forecast Details</h3>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredForecast.slice(0, 3).map((data, index) => (
+                <ForecastCard key={index} data={data} currentTheme={currentTheme} getTemperatureWithoutConversion={getTemperatureWithoutConversion} />
+              ))}
+            </div>
+            <div className="mt-4 flex justify-center">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 w-full lg:w-2/3">
+                {filteredForecast.slice(3, 5).map((data, index) => (
+                  <ForecastCard key={index + 3} data={data} currentTheme={currentTheme} getTemperatureWithoutConversion={getTemperatureWithoutConversion} />
+                ))}
+              </div>
+            </div>
+          </div>
         )}
 
-
+        {/* Air Quality Information */}
         <div className="flex flex-col w-full h-full">
-          {/* Air quality Index  */}
-          <div style={containerStyle}>
+          {/* Air quality Index static  */}
+          {/* <div style={containerStyle}>
             <h3 style={titleStyle}>Air Quality Information</h3>
             <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
 
@@ -3150,6 +3182,49 @@ function App() {
                 </div>
                 <div style={metricValueStyle}>30 ppb</div>
                 <p style={metricDescStyle}>Ground-level ozone</p>
+              </div>
+
+            </div>
+          </div> */}
+          {/* Dynamic */}
+          {/* Air Quality Information Section */}
+          <div style={containerStyle}>
+            <h3 style={titleStyle}>Air Quality Information</h3>
+            <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
+
+              <div style={cardStyle} className="transition-all duration-300 hover:scale-105">
+                <div style={metricTitleStyle}>
+                  <span>Air Quality Index</span>
+                  <Wind size={36} color="#3182ce" />
+                </div>
+                <div style={metricValueStyle}>
+                  {airQualityData ? getAQIDescription(airQualityData.list[0].main.aqi) : 'Loading...'}
+                </div>
+                <p style={metricDescStyle}>
+                  Based on PM2.5, PM10, NO2, and other pollutants
+                </p>
+              </div>
+
+              <div style={cardStyle} className="transition-all duration-300 hover:scale-105">
+                <div style={metricTitleStyle}>
+                  <span>PM2.5</span>
+                  <Droplets size={36} color="#6b46c1" />
+                </div>
+                <div style={metricValueStyle}>
+                  {airQualityData ? `${airQualityData.list[0].components.pm2_5.toFixed(2)} μg/m³` : 'Loading...'}
+                </div>
+                <p style={metricDescStyle}>Fine particulate matter</p>
+              </div>
+
+              <div style={cardStyle} className="transition-all duration-300 hover:scale-105">
+                <div style={metricTitleStyle}>
+                  <span>NO2</span>
+                  <CloudRain size={36} color="#d69e2e" />
+                </div>
+                <div style={metricValueStyle}>
+                  {airQualityData ? `${airQualityData.list[0].components.no2.toFixed(2)} μg/m³` : 'Loading...'}
+                </div>
+                <p style={metricDescStyle}>Nitrogen dioxide level</p>
               </div>
 
             </div>
@@ -3198,6 +3273,39 @@ function App() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// Separate component for each forecast card
+function ForecastCard({ data, currentTheme, getTemperatureWithoutConversion }) {
+  return (
+    <div
+      className={`p-4 rounded-lg transition-all duration-300 hover:scale-105 ${currentTheme === "dark" ? "newSectionBgDark" : "newSectionBgLight"
+        }`}
+    >
+      <h4 className="font-bold text-lg mb-3">
+        {new Date(data.dt_txt).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+      </h4>
+      <div className="space-y-2">
+        <div className="flex items-center">
+          <Thermometer className="w-5 h-5 mr-2 text-red-500" />
+          <span>Temperature: {getTemperatureWithoutConversion(data.main.temp)}</span>
+        </div>
+        <div className="flex items-center">
+          <Droplets className="w-5 h-5 mr-2 text-blue-500" />
+          <span>Humidity: {data.main.humidity}%</span>
+        </div>
+        <div className="flex items-center">
+          <Wind className="w-5 h-5 mr-2 text-green-500" />
+          <span>Wind Speed: {data.wind.speed} m/s</span>
+        </div>
+        <div className="flex items-center">
+          <Cloud className="w-5 h-5 mr-2 text-gray-500" />
+          <span className="capitalize">{data.weather[0].description}</span>
         </div>
       </div>
     </div>
