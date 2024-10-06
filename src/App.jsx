@@ -1955,6 +1955,12 @@ import { trash2 } from "react-icons-kit/feather/trash2.js";
 import { plus } from "react-icons-kit/feather/plus.js";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { Cloud, Droplets, Thermometer, Sun, Wind } from "lucide-react"
+import MarkerClusterGroup from 'react-leaflet-cluster';
+import { CircleMarker } from 'react-leaflet';
+import WeatherMap from "./components/WeatherMap.jsx";
+import WeatherMapOpen from "./components/OpenWeatherHeatMap.jsx";
+import HeatMap from "./config/heatmap.jsx";
+
 
 const myIcon = new L.Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
@@ -2070,7 +2076,6 @@ function App() {
     }
   };
 
-
   useEffect(() => {
     fetchCityFromIP();
   }, []);
@@ -2185,7 +2190,7 @@ function App() {
       const timer = setTimeout(() => {
         setShowNotification(false);
         dispatch(clearNotificationMessage());
-      }, 3000);
+      }, 5000);
       return () => {
         clearTimeout(timer);
       };
@@ -2248,6 +2253,7 @@ function App() {
 
   useEffect(() => {
     localStorage.setItem('interestedCities', JSON.stringify(selectedCities));
+    // console.log(mainCityData);
   }, [selectedCities]);
 
   useEffect(() => {
@@ -2350,6 +2356,29 @@ function App() {
   const metricDescStyle = {
     fontSize: '12px',
     color: isDark ? '#a0aec0' : '#718096',
+  };
+
+
+  const [showHeatmap, setShowHeatmap] = useState(false);
+
+  // Add this function to generate heat map data
+  const generateHeatmapData = () => {
+    if (!mainCityData || !mainCityData.data) return [];
+
+    const { lat, lon } = mainCityData.data.coord;
+    const temp = mainCityData.data.main.temp;
+
+    // Generate some random points around the main city
+    const points = [];
+    for (let i = 0; i < 100; i++) {
+      points.push({
+        lat: lat + (Math.random() - 0.5) * 0.5,
+        lng: lon + (Math.random() - 0.5) * 0.5,
+        intensity: temp + (Math.random() - 0.5) * 10 // Vary temperature slightly
+      });
+    }
+
+    return points;
   };
 
   return (
@@ -2617,14 +2646,14 @@ function App() {
                                 <Icon icon={arrowUp} size={14} className="text-yellow-500" />
                                 <span>
                                   {mainCityData && mainCityData.data &&
-                                    new Date(mainCityData.data.sys.sunrise * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}
+                                    new Date(mainCityData.data.sys.sunrise * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
                               <div className="flex items-center text-xs justify-between mt-2">
                                 <Icon icon={arrowDown} size={14} className="text-orange-500" />
                                 <span>
                                   {mainCityData && mainCityData.data &&
-                                    new Date(mainCityData.data.sys.sunset * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}
+                                    new Date(mainCityData.data.sys.sunset * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
                             </div>
@@ -2934,7 +2963,7 @@ function App() {
 
                 {/* Map Section */}
                 <div className={`hidden lg:flex items-center w-full h-full lg:w-[60%]  ${currentTheme === 'dark' ? 'mainCardBg' : 'bg-gray-100'} rounded-xl z-10`}>
-                  <div className="h-full w-full">
+                  {/* <div className="h-full w-full">
                     {loadings ? (
                       <div className="flex justify-center items-center  w-full h-full">
                         <SphereSpinner loadings={loadings} color="#0D1DA9" size={30} />
@@ -2959,6 +2988,47 @@ function App() {
                         </MapContainer>
                       )
                     )}
+                  </div> */}
+                  {/* Heat Map */}
+                  <div className="w-full h-full">
+                    <div className={`hidden lg:flex items-center w-full h-full ${currentTheme === 'dark' ? 'mainCardBg' : 'bg-gray-100'} rounded-xl z-10`}>
+                      <div className="h-full w-full">
+                        {loadings ? (
+                          <div className="flex justify-center items-center w-full h-full">
+                            <SphereSpinner loadings={loadings} color="#0D1DA9" size={30} />
+                          </div>
+                        ) : (
+                          position && (
+                            <WeatherMap
+                              position={position}
+                              carouselCities={carouselCities}
+                              carouselIndex={carouselIndex}
+                              currentTheme={currentTheme}
+                              mainCityData={mainCityData}
+                              unit={unit}
+                            />
+
+                            // <HeatMap
+                            //   position={position}
+                            //   carouselCities={carouselCities}
+                            //   carouselIndex={carouselIndex}
+                            //   currentTheme={currentTheme}
+                            //   mainCityData={mainCityData}
+                            //   unit={unit}
+                            // />
+
+                            //   <WeatherMapOpen
+                            //   position={position}
+                            //   carouselCities={carouselCities}
+                            //   carouselIndex={carouselIndex}
+                            //   currentTheme={currentTheme}
+                            //   mainCityData={mainCityData}
+                            //   unit={unit}
+                            // />
+                          )
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3048,68 +3118,85 @@ function App() {
           </div>
         )}
 
-        {/* Air quality Index  */}
-        <div style={containerStyle}>
-          <h3 style={titleStyle}>Air Quality Information</h3>
-          <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
 
-            <div style={cardStyle} className="transition-all duration-300 hover:scale-105">
-              <div style={metricTitleStyle}>
-                <span>Air Quality Index</span>
-                <Wind size={36} color="#3182ce" />
+        <div className="flex flex-col w-full h-full">
+          {/* Air quality Index  */}
+          <div style={containerStyle}>
+            <h3 style={titleStyle}>Air Quality Information</h3>
+            <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
+
+              <div style={cardStyle} className="transition-all duration-300 hover:scale-105">
+                <div style={metricTitleStyle}>
+                  <span>Air Quality Index</span>
+                  <Wind size={36} color="#3182ce" />
+                </div>
+                <div style={metricValueStyle}>Good</div>
+                <p style={metricDescStyle}>Healthy air quality</p>
               </div>
-              <div style={metricValueStyle}>Good</div>
-              <p style={metricDescStyle}>Healthy air quality</p>
-            </div>
 
-            <div style={cardStyle} className="transition-all duration-300 hover:scale-105">
-              <div style={metricTitleStyle}>
-                <span>PM2.5</span>
-                <Droplets size={36} color="#6b46c1" />
+              <div style={cardStyle} className="transition-all duration-300 hover:scale-105">
+                <div style={metricTitleStyle}>
+                  <span>PM2.5</span>
+                  <Droplets size={36} color="#6b46c1" />
+                </div>
+                <div style={metricValueStyle}>10 µg/m³</div>
+                <p style={metricDescStyle}>Fine particulate matter</p>
               </div>
-              <div style={metricValueStyle}>10 µg/m³</div>
-              <p style={metricDescStyle}>Fine particulate matter</p>
-            </div>
 
-            <div style={cardStyle} className="transition-all duration-300 hover:scale-105">
-              <div style={metricTitleStyle}>
-                <span>Ozone</span>
-                <Sun size={36} color="#d69e2e" />
+              <div style={cardStyle} className="transition-all duration-300 hover:scale-105">
+                <div style={metricTitleStyle}>
+                  <span>Ozone</span>
+                  <Sun size={36} color="#d69e2e" />
+                </div>
+                <div style={metricValueStyle}>30 ppb</div>
+                <p style={metricDescStyle}>Ground-level ozone</p>
               </div>
-              <div style={metricValueStyle}>30 ppb</div>
-              <p style={metricDescStyle}>Ground-level ozone</p>
-            </div>
 
+            </div>
           </div>
         </div>
 
         {/* Map in the mobile view */}
         <div className={`lg:hidden flex items-center w-full h-[300px] mb-2 lg:w-[60%] ${currentTheme === 'dark' ? 'newSectionBgDark' : 'newSectionBgDarkLight'} rounded-xl z-10`}>
-          <div className="h-full w-full">
-            {loadings ? (
-              <div className="flex justify-center items-center  w-full h-full">
-                <SphereSpinner loadings={loadings} color="#0D1DA9" size={30} />
+          <div className="w-full h-full">
+            <div className={`flex lg:hidden items-center w-full h-full ${currentTheme === 'dark' ? 'mainCardBg' : 'bg-gray-100'} rounded-xl z-10`}>
+              <div className="h-full w-full">
+                {loadings ? (
+                  <div className="flex justify-center items-center w-full h-full">
+                    <SphereSpinner loadings={loadings} color="#0D1DA9" size={30} />
+                  </div>
+                ) : (
+                  position && (
+                    <WeatherMap
+                      position={position}
+                      carouselCities={carouselCities}
+                      carouselIndex={carouselIndex}
+                      currentTheme={currentTheme}
+                      mainCityData={mainCityData}
+                      unit={unit}
+                    />
+
+                    // <HeatMap
+                    //   position={position}
+                    //   carouselCities={carouselCities}
+                    //   carouselIndex={carouselIndex}
+                    //   currentTheme={currentTheme}
+                    //   mainCityData={mainCityData}
+                    //   unit={unit}
+                    // />
+
+                    //   <WeatherMapOpen
+                    //   position={position}
+                    //   carouselCities={carouselCities}
+                    //   carouselIndex={carouselIndex}
+                    //   currentTheme={currentTheme}
+                    //   mainCityData={mainCityData}
+                    //   unit={unit}
+                    // />
+                  )
+                )}
               </div>
-            ) : (
-              position && (
-                <MapContainer center={position} zoom={10} zoomControl={false} style={{ height: '100%', width: '100%', borderRadius: '0.5rem' }}>
-                  <TileLayer
-                    url={`https://api.maptiler.com/maps/${currentTheme === 'dark' ? 'streets' : 'streets'}/{z}/{x}/{y}.png?key=iww5jN0ZVMDaPpwR0CAA&language=en`}
-                    attribution='&copy; <a href="https://www.maptiler.com/">MapTiler</a>'
-                  />
-                  <Marker position={position} icon={myIcon}>
-                    <Popup>
-                      {carouselCities[carouselIndex] && carouselCities[carouselIndex].data && (
-                        <>
-                          <h3>{carouselCities[carouselIndex].data.name}</h3>
-                        </>
-                      )}
-                    </Popup>
-                  </Marker>
-                  <MapUpdater center={position} />
-                </MapContainer>
-              )
-            )}
+            </div>
           </div>
         </div>
       </div>
