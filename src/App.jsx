@@ -2374,7 +2374,7 @@ function App() {
     if (mainCityData && mainCityData.data) {
       const { lat, lon } = mainCityData.data.coord;
       const apiKey = '63426fced634636a262e6d73aa5c7f04';
-      axios.get(`http://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`)
+      axios.get(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`)
         .then(response => {
           setAirQualityData(response.data);
         })
